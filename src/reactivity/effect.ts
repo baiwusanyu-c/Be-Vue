@@ -1,21 +1,22 @@
-
+import {IEffectOption} from './effect.d'
 
 // 当前激活的副作用函数对象
 let activeEffect:ReactiveEffect;
 class ReactiveEffect {
     private _fn:any
-    constructor(fn:Function) {
+    constructor(fn:Function,public scheduler?:Function) {
         this._fn = fn
     }
     run(){
         activeEffect = this
-        this._fn()
+        return this._fn()
     }
 
 }
-export const effect = (fn:Function):void  =>{
-    const _effect = new ReactiveEffect(fn)
-    _effect.run()
+export const effect = (fn:Function,options:IEffectOption={}):Function  =>{
+    const _effect = new ReactiveEffect(fn,options.scheduler)
+     _effect.run()
+    return _effect.run.bind(_effect)
 }
 let targetMap = new Map()
 /**
@@ -48,6 +49,10 @@ export const trigger = (target: any, key: string | symbol, value: any) :void =>{
     let dep = depsMap.get(key)
     // 将 target 某个key的所有依赖全部执行一遍
     for (let effect of dep){
-        effect.run()
+        if(effect.scheduler){
+            effect.scheduler()
+        }else{
+            effect.run()
+        }
     }
 }
