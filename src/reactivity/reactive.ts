@@ -1,19 +1,13 @@
-import {track, trigger} from "./effect";
+import {mutableHandlers, readonlyHandlers} from "./baseHandlers";
+
 
 export const reactive = (raw:any) =>{
-    return new Proxy(raw,{
-        get(target: any, key: string | symbol, receiver: any): any {
-            const res = Reflect.get(target,key)
-            // 依赖收集
-            track(target,key)
-            return res
-        },
-        set(target: any, key: string | symbol, value: any, receiver: any): boolean {
-            const res = Reflect.set(target,key,value)
-            // 派发通知
-            trigger(target,key,value)
+    return createActiveObject(raw,mutableHandlers)
+}
+export const readonly = (raw:any) =>{
+    return createActiveObject(raw,readonlyHandlers)
+}
 
-            return true
-        }
-    })
+const createActiveObject = (raw:any,baseHandlers:any) =>{
+    return new Proxy(raw,baseHandlers)
 }
