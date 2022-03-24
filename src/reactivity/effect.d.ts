@@ -1,3 +1,4 @@
 export declare interface IEffectOption {
-    scheduler?:Function
+    scheduler?:()=>void
+    onStop?:()=>void
 }

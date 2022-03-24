@@ -1,4 +1,4 @@
-import {effect} from "../effect";
+import {effect, stop} from "../effect";
 import {reactive} from "../reactive";
 
 describe('test-effect', () => {
@@ -59,5 +59,39 @@ describe('test-effect', () => {
         expect(res).toBe('scheduler')
         expect(testScheduler).toBe(2)
 
+    })
+    test('effect stop', async () => {
+        // stop方法，传入一个runner，当trigger后 ，不执行副作用函数，需要手动调用runner
+        const test = reactive({
+            foo:1
+        })
+        let testStop:number = 0
+        const runner = effect(()=>{
+            testStop =  test.foo
+            return 'stop'
+        })
+        test.foo = 2
+        expect(test.foo).toBe(2)
+        expect(testStop).toBe(2)
+        stop(runner)
+        test.foo = 3
+        expect(testStop).toBe(2)
+        runner()
+        expect(testStop).toBe(3)
+
+    })
+    test('effect onStop', async () => {
+        // onStop 调用stop时的钩子函数
+        const test = reactive({
+            foo:1
+        })
+        const onStop = jest.fn()
+        let testOnStop:number = 0
+        const runner = effect(()=>{
+            testOnStop =  test.foo
+            return 'onStop'
+        },{onStop})
+        stop(runner)
+        expect(onStop).toBeCalledTimes(1)
     })
 })

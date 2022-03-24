@@ -1,9 +1,16 @@
 import {IEffectOption} from './effect.d'
+import {extend} from "../shared";
 
 // 当前激活的副作用函数对象
 let activeEffect:ReactiveEffect;
+
+
+
 class ReactiveEffect {
     private _fn:any
+    deps:Array<any> = []
+    active:boolean = true
+    onStop?:()=>void
     constructor(fn:Function,public scheduler?:Function) {
         this._fn = fn
     }
@@ -11,12 +18,35 @@ class ReactiveEffect {
         activeEffect = this
         return this._fn()
     }
+    stop(){
+        if(this.active){
+            if(this.onStop){
+                this.onStop()
+            }
+            cleanupEffect(this);
+            this.active = false
+        }
+    }
 
+}
+function cleanupEffect(effect:ReactiveEffect) {
+    effect.deps.forEach(value => {
+        value.delete(effect)
+    })
 }
 export const effect = (fn:Function,options:IEffectOption={}):Function  =>{
     const _effect = new ReactiveEffect(fn,options.scheduler)
+    // 降配置传递给 _effect
+    extend(_effect,options)
      _effect.run()
-    return _effect.run.bind(_effect)
+    // 给 runner 上挂上自己，stop时使用
+    const runner:any = _effect.run.bind(_effect)
+    runner.effect = _effect
+    return runner
+}
+
+export const stop = (runner:any):void =>{
+    runner.effect.stop()
 }
 let targetMap = new Map()
 /**
@@ -35,8 +65,11 @@ export const track = (target: any, key: string | symbol) :void =>{
         dep = new Set()
         depsMap.set(key,dep)
     }
+    if(!activeEffect) return
     // 当前激活的副作用函数对象作为依赖收集起来
     dep.add(activeEffect)
+    // 反向收集activeEffect的dep，使得stop时可以找到对应副作用函数
+    activeEffect.deps.push(dep)
 }
 /**
  * 通知派发
