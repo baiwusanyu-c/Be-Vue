@@ -1,4 +1,4 @@
-import {readonly} from "../reactive";
+import {isReadonly, readonly} from "../reactive";
 
 describe('test-readonly', () => {
     // readonly 不可以 set
@@ -7,6 +7,7 @@ describe('test-readonly', () => {
         let readonlyVal = readonly(originVal)
         expect(readonlyVal).not.toBe(originVal)
         expect(readonlyVal.foo).toBe(1)
+        expect(isReadonly(readonlyVal)).toBeTruthy()
     })
     test('warn then call set', async () => {
         const originVal:any = {foo:1}
