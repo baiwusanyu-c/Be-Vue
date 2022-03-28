@@ -4,6 +4,7 @@ import {isObject} from "../shared";
 
 const createGetter = (isReadonly = false) =>{
     return  function get(target: any, key: string | symbol, receiver: any): any {
+        // 根据参数确定是否为readonly
         if(key === ReactiveFlags.IS_REACTIVE){
             return !isReadonly
         }
