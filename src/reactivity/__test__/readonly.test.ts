@@ -1,4 +1,4 @@
-import {isReadonly, readonly} from "../reactive";
+import {isReactive, isReadonly, readonly} from "../reactive";
 
 describe('test-readonly', () => {
     // readonly 不可以 set
@@ -17,5 +17,21 @@ describe('test-readonly', () => {
         expect(readonlyVal.foo).toBe(1)
         readonlyVal.foo = 2
         expect(console.warn).toBeCalled()
+    })
+    test('nested readonly',()=>{
+        const original = {
+            foo:1,
+            child:{
+                foo:1
+            },
+            arr:[{foo:1}]
+        }
+        const observed = readonly(original)
+        expect(original).not.toBe(observed)
+        expect(observed.foo).toBe(1)
+        expect(isReadonly(observed)).toBeTruthy()
+        expect(isReadonly(observed.child)).toBeTruthy()
+        expect(isReadonly(observed.arr)).toBeTruthy()
+        expect(isReadonly(observed.arr[0])).toBeTruthy()
     })
 })

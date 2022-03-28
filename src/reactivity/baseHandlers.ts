@@ -1,5 +1,6 @@
 import {track, trigger} from "./effect";
-import {ReactiveFlags} from "./reactive";
+import {reactive, ReactiveFlags, readonly} from "./reactive";
+import {isObject} from "../shared";
 
 const createGetter = (isReadonly = false) =>{
     return  function get(target: any, key: string | symbol, receiver: any): any {
@@ -10,6 +11,10 @@ const createGetter = (isReadonly = false) =>{
             return isReadonly
         }
         const res = Reflect.get(target,key)
+        // 处理存在子对象获子数组情况，递归调用
+        if(isObject(res)){
+            return isReadonly ? readonly(res) : reactive(res)
+        }
         if(!isReadonly){
             // 依赖收集
             track(target,key)
