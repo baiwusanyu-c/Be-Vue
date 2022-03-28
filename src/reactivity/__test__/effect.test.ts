@@ -62,6 +62,7 @@ describe('test-effect', () => {
     })
     test('effect stop', async () => {
         // stop方法，传入一个runner，当trigger后 ，不执行副作用函数，需要手动调用runner
+        // 通过在effect对象上挂载stop方法，在方法内部清空对应deps依赖实现
         const test = reactive({
             foo:1
         })
@@ -74,7 +75,7 @@ describe('test-effect', () => {
         expect(test.foo).toBe(2)
         expect(testStop).toBe(2)
         stop(runner)
-        test.foo = 3
+        test.foo ++
         expect(testStop).toBe(2)
         runner()
         expect(testStop).toBe(3)

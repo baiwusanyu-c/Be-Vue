@@ -3,7 +3,8 @@ import {extend} from "../shared";
 
 // 当前激活的副作用函数对象
 let activeEffect:ReactiveEffect;
-
+// 是否应该收集依赖 stop功能会用到
+let shouldTrack:boolean;
 
 
 class ReactiveEffect {
@@ -15,8 +16,17 @@ class ReactiveEffect {
         this._fn = fn
     }
     run(){
+        // stop 后 this.active = false,直接return
+        // 由于 shouldTrack = false 所以不会 再 track
+        if(!this.active){
+            return this._fn()
+        }
+
+        shouldTrack = true
         activeEffect = this
-        return this._fn()
+        const res = this._fn()
+        shouldTrack = false
+        return res
     }
     stop(){
         if(this.active){
@@ -55,6 +65,9 @@ let targetMap = new Map()
  * @param key
  */
 export const track = (target: any, key: string | symbol) :void =>{
+    if(!isTracking()){
+        return;
+    }
     let depsMap = targetMap.get(target)
     if(!depsMap){
         depsMap = new Map()
@@ -65,11 +78,15 @@ export const track = (target: any, key: string | symbol) :void =>{
         dep = new Set()
         depsMap.set(key,dep)
     }
-    if(!activeEffect) return
-    // 当前激活的副作用函数对象作为依赖收集起来
-    dep.add(activeEffect)
-    // 反向收集activeEffect的dep，使得stop时可以找到对应副作用函数
-    activeEffect.deps.push(dep)
+    if(!dep.has(activeEffect)) {
+        // 当前激活的副作用函数对象作为依赖收集起来
+        dep.add(activeEffect)
+        // 反向收集activeEffect的dep，使得stop时可以找到对应副作用函数
+        activeEffect.deps.push(dep)
+    }
+}
+function isTracking(){
+    return shouldTrack && activeEffect !== undefined
 }
 /**
  * 通知派发
