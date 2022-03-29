@@ -1,8 +1,8 @@
 import {track, trigger} from "./effect";
 import {reactive, ReactiveFlags, readonly} from "./reactive";
-import {isObject} from "../shared";
+import {extend, isObject} from "../shared";
 
-const createGetter = (isReadonly = false) =>{
+const createGetter = (isReadonly = false,isShallow = false) =>{
     return  function get(target: any, key: string | symbol, receiver: any): any {
         // 根据参数确定是否为readonly
         if(key === ReactiveFlags.IS_REACTIVE){
@@ -12,6 +12,9 @@ const createGetter = (isReadonly = false) =>{
             return isReadonly
         }
         const res = Reflect.get(target,key)
+        if(isShallow){
+            return res
+        }
         // 处理存在子对象获子数组情况，递归调用
         if(isObject(res)){
             return isReadonly ? readonly(res) : reactive(res)
@@ -35,6 +38,7 @@ const createSetter = () =>{
 const get = createGetter()
 const set = createSetter()
 const readonlyGetter = createGetter(true)
+const shallowReadonlyGetter = createGetter(true,true)
 export const mutableHandlers = {
     get,
     set
@@ -46,3 +50,6 @@ export const readonlyHandlers = {
         return true
     }
 }
+export const shallowReadonlyHandlers = extend({},readonlyHandlers,{
+    get:shallowReadonlyGetter,
+})

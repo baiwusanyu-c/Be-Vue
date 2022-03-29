@@ -1,4 +1,4 @@
-import {isReactive, isReadonly, readonly} from "../reactive";
+import {isProxy, isReadonly, readonly} from "../reactive";
 
 describe('test-readonly', () => {
     // readonly 不可以 set
@@ -8,6 +8,8 @@ describe('test-readonly', () => {
         expect(readonlyVal).not.toBe(originVal)
         expect(readonlyVal.foo).toBe(1)
         expect(isReadonly(readonlyVal)).toBeTruthy()
+        expect(isProxy(readonlyVal)).toBeTruthy()
+        expect(isProxy(originVal)).not.toBeTruthy()
     })
     test('warn then call set', async () => {
         const originVal:any = {foo:1}
