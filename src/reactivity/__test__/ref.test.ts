@@ -1,5 +1,6 @@
-import {ref} from "../ref";
+import {isRef, ref, unRef} from "../ref";
 import {effect} from "../effect";
+import {reactive} from "../reactive";
 
 describe('test-effect', () => {
     test('happy path', () => {
@@ -37,5 +38,18 @@ describe('test-effect', () => {
         foo.value.asd = 2
         expect(exmp).toBe(2)
 
+    })
+
+    test('isRef',()=>{
+        const foo = ref(1)
+        const reactiveFoo = reactive({foo:1})
+        expect(isRef(foo)).toBe(true)
+        expect(isRef(1)).toBe(false)
+        expect(isRef(reactiveFoo)).toBe(false)
+    })
+    test('unRef',()=>{
+        const foo = ref(1)
+        expect(unRef(foo)).toBe(1)
+        expect(unRef(1)).toBe(1)
     })
 })
