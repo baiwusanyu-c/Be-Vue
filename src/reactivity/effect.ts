@@ -78,6 +78,9 @@ export const track = (target: any, key: string | symbol) :void =>{
         dep = new Set()
         depsMap.set(key,dep)
     }
+    trackEffects(dep)
+}
+export function trackEffects(dep:any):void {
     if(!dep.has(activeEffect)) {
         // 当前激活的副作用函数对象作为依赖收集起来
         dep.add(activeEffect)
@@ -85,7 +88,7 @@ export const track = (target: any, key: string | symbol) :void =>{
         activeEffect.deps.push(dep)
     }
 }
-function isTracking(){
+export function isTracking(){
     return shouldTrack && activeEffect !== undefined
 }
 /**
@@ -97,6 +100,9 @@ function isTracking(){
 export const trigger = (target: any, key: string | symbol, value: any) :void =>{
     let depsMap = targetMap.get(target)
     let dep = depsMap.get(key)
+    triggerEffects(dep)
+}
+export function triggerEffects(dep:any):void {
     // 将 target 某个key的所有依赖全部执行一遍
     for (let effect of dep){
         if(effect.scheduler){
