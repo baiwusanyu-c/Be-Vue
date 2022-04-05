@@ -12,17 +12,21 @@ const createGetter = (isReadonly = false,isShallow = false) =>{
             return isReadonly
         }
         const res = Reflect.get(target,key)
-        if(isShallow){
-            return res
-        }
-        // 处理存在子对象获子数组情况，递归调用
-        if(isObject(res)){
-            return isReadonly ? readonly(res) : reactive(res)
-        }
+        // readonly 只能读，不会set 不trigger 也就不需要 track
         if(!isReadonly){
             // 依赖收集
             track(target,key)
         }
+        // shallowReadonly 或 shallowReactive 都直接返回
+        if(isShallow){
+            return res
+        }
+        // 处理存在子对象获子数组情况，递归调用
+        // 深readonly和深reactive
+        if(isObject(res)){
+            return isReadonly ? readonly(res) : reactive(res)
+        }
+
         return res
     }
 }
