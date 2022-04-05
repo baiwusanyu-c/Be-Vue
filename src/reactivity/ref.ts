@@ -40,3 +40,22 @@ export function isRef(ref:any){
 export function unRef(ref:any){
     return isRef(ref) ? ref.value : ref
 }
+export function proxyRefs(rawWithRefs:any){
+    return new Proxy(rawWithRefs,{
+        get(target: any, key: string | symbol): any {
+            // 当访问的值是ref对象，返回.value，否则直接返回
+            const res = Reflect.get(target,key)
+            return isRef(res) ? res.value : res
+        },
+        set(target: any, key: string | symbol, value: any, receiver: any): boolean {
+            // 当设置的值是ref，且新值不是ref
+            let targetVal = Reflect.get(target,key)
+            if(isRef(targetVal) && !isRef(value)){
+                targetVal.value = value
+            }else{
+                targetVal = value
+            }
+            return true
+        }
+    })
+}
