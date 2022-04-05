@@ -7,7 +7,7 @@ let activeEffect:ReactiveEffect;
 let shouldTrack:boolean;
 
 
-class ReactiveEffect {
+export class ReactiveEffect {
     private _fn:any
     deps:Array<any> = []
     active:boolean = true
