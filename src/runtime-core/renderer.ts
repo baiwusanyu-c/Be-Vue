@@ -43,7 +43,7 @@ function mountComponent(vnode:any,container:any){
 function setupRenderEffect(instance:any,container:any){
     // 调用render函数，拿到子树vnode，这个值可能是组件也可能是元素或其他，
     // 但是他一定是上一轮的子树
-    const subTree = instance.rander()
+    const subTree = instance.render()
     // 再次 patch，处理子树
     patch(subTree,container)
 

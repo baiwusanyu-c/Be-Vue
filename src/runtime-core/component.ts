@@ -40,7 +40,7 @@ export function handleSetupResult(instance:any,setupResult:any){
 export function finishComponentSetup(instance:any){
     const component = instance.type
     // 如果组件 instance 上用户render
-    if(!instance.render){
+    if(component.render){
         // 就是用用户写的 render的option
         instance.render = component.render
     }

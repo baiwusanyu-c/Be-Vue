@@ -1,3 +1,4 @@
+import {h} from '../../lib/be-vue.esm.js'
 export const App = {
     // .vue
     setup(){
