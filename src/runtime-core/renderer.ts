@@ -37,7 +37,7 @@ function processElement(vnode:any,container:any){
  * @param container
  */
 function mountElement(vnode:any,container:any){
-    const el = document.createElement(vnode.type)
+    const el = (vnode.el = document.createElement(vnode.type))
     let children = vnode.children
     // 如果是文本元素就插入
     if(isString(children)){
@@ -82,13 +82,14 @@ function mountComponent(vnode:any,container:any){
     // 开始处理 setup 运行完成后内涵的子节点
     // 可以理解初始化时，我们处理的是根节点组件与容器
     // 这里就是处理根组件下的子组件了
-    setupRenderEffect(instance,container)
+    setupRenderEffect(instance,vnode,container)
 }
-function setupRenderEffect(instance:any,container:any){
+function setupRenderEffect(instance:any,vnode:any,container:any){
     // 调用render函数，拿到子树vnode，这个值可能是组件也可能是元素或其他，
     // 但是他一定是上一轮的子树
-    const subTree = instance.render()
+    const subTree = instance.render.call(instance.proxy)
     // 再次 patch，处理子树
     patch(subTree,container)
-
+    // 记录根组件对应的el
+    vnode.el = subTree.el
 }

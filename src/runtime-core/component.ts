@@ -1,9 +1,13 @@
-import {isObject} from "../shared";
+import {isObject} from "../shared/index";
+import {PublicInstanceProxuHandlers} from "./componentPublicInstance";
+
 
 export function createComponentInstance(vnode:any){
     return {
         vnode,
         type:vnode.type,// 这个是原始组件对象
+        setupState:{}, // setup的返回结果对象
+        
     }
 }
 export function setupComponent(instance:any){
@@ -18,6 +22,8 @@ export function setupComponent(instance:any){
 export function setStatefulComponent(instance:any){
     // 获取原始组件对象（注意这里并不是组件实例）
     const component = instance.type
+    // 创建要给组件实例代理，使得render方法内能够通过this访问组件实例,如this.$el等
+    instance.proxy = new Proxy({_:instance},PublicInstanceProxuHandlers)
     // 获取原始组件对象的 setup 方法
     const setup = component.setup
     if(setup){
@@ -30,7 +36,7 @@ export function setStatefulComponent(instance:any){
 export function handleSetupResult(instance:any,setupResult:any){
     // 如果setup结果，是一个对象，就把结果挂载到instance上
     if(isObject(setupResult)){
-        instance.setupResult = setupResult
+        instance.setupState = setupResult
     }
     // 处理渲染函数render具体方法，渲染函数可能来自于模板编译、setup返回、render的option
     finishComponentSetup(instance)
