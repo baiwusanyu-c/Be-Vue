@@ -1,4 +1,5 @@
 import {createComponentInstance, setupComponent} from "./component";
+import {isArray, isObject, isString} from "../shared/index";
 
 export function render(vnode:any,container:any){
     patch(vnode,container)
@@ -11,9 +12,52 @@ export function render(vnode:any,container:any){
  */
 export function patch(vnode:any,container:any){
     // 根据 vnode 类型不同，进行不同处理
-
+    // 处理 element类型
+    if(isString(vnode.type)){
+        processElement(vnode,container)
+    }
     // 处理组件类型
-    processComponent(vnode,container)
+    if(isObject(vnode.type)) {
+        processComponent(vnode, container)
+    }
+
+}
+/**
+ * 处理元素方法
+ * @param vnode
+ * @param container
+ */
+
+function processElement(vnode:any,container:any){
+    mountElement(vnode,container)
+}
+/**
+ * 挂载元素方法
+ * @param vnode
+ * @param container
+ */
+function mountElement(vnode:any,container:any){
+    const el = document.createElement(vnode.type)
+    let children = vnode.children
+    // 如果是文本元素就插入
+    if(isString(children)){
+        el.textContent = children
+    }
+    // 是数组就递归 patch 子节点
+    if(isArray(children)){
+        mountChildren(vnode,el)
+    }
+    // 处理属性
+    const {props} = vnode
+    for(let key in props){
+        el.setAttribute(key,props[key])
+    }
+    container.append(el)
+}
+function mountChildren(vnode:any,container:any){
+    vnode.children.forEach((elm:any) =>{
+        patch(elm,container)
+    })
 }
 
 /**

@@ -1,5 +1,5 @@
 import {isTracking, trackEffects, triggerEffects} from "./effect";
-import {hasChanged, isObject} from "../shared";
+import {hasChanged, isObject} from "../shared/index";
 import {reactive} from "./reactive";
 
 

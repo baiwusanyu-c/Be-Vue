@@ -8,6 +8,12 @@ export const App = {
         }
     },
     render(){
-        return h('div',`hi be-vue${this.msg}`)
+        return h('div',
+            {
+                id:`hi be-vue${this.msg}`,
+                class:['aaa','qwdqwdasssssss'],
+            },
+            [h('div',{id:`hi be-vue${this.msg}c`,class:['ccc']},'aswadda')]
+        )
     }
 }

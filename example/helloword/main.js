@@ -1,5 +1,5 @@
 // be-vue
 import {createApp} from "../../lib/be-vue.esm.js";
 import {App} from "./App.js";
-const rootContainer = document.getElementById('#app')
+const rootContainer = document.getElementById('app')
 createApp(App).mount(rootContainer)

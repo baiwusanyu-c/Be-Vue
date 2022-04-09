@@ -39,7 +39,7 @@ export function handleSetupResult(instance:any,setupResult:any){
 // 最后处理渲染函数方法，自此组件setup相关初始化流程结束
 export function finishComponentSetup(instance:any){
     const component = instance.type
-    // 如果组件 instance 上用户render
+    // 如果组件 instance 上用户render // render 优先级 setup的返回render，组件内option的render，template
     if(component.render){
         // 就是用用户写的 render的option
         instance.render = component.render
