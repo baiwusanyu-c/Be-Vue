@@ -1,5 +1,6 @@
 import {createComponentInstance, setupComponent} from "./component";
 import {isArray, isObject, isString} from "../shared/index";
+import {shapeFlags} from "../shared/ShapeFlags";
 
 export function render(vnode:any,container:any){
     patch(vnode,container)
@@ -13,11 +14,12 @@ export function render(vnode:any,container:any){
 export function patch(vnode:any,container:any){
     // 根据 vnode 类型不同，进行不同处理
     // 处理 element类型
-    if(isString(vnode.type)){
+    const {shapeFlag} = vnode
+    if(shapeFlag & shapeFlags.ELEMENT){
         processElement(vnode,container)
     }
     // 处理组件类型
-    if(isObject(vnode.type)) {
+    if(shapeFlag & shapeFlags.STATEFUL_COMPONENT){
         processComponent(vnode, container)
     }
 
@@ -38,13 +40,13 @@ function processElement(vnode:any,container:any){
  */
 function mountElement(vnode:any,container:any){
     const el = (vnode.el = document.createElement(vnode.type))
-    let children = vnode.children
+    let {children,shapeFlag} = vnode
     // 如果是文本元素就插入
-    if(isString(children)){
+    if(shapeFlag & shapeFlags.TEXT_CHILDREN){
         el.textContent = children
     }
     // 是数组就递归 patch 子节点
-    if(isArray(children)){
+    if(shapeFlag & shapeFlags.ARRAY_CHILDREN){
         mountChildren(vnode,el)
     }
     // 处理属性
