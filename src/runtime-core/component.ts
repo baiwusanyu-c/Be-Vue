@@ -1,5 +1,7 @@
 import {isObject} from "../shared/index";
 import {PublicInstanceProxuHandlers} from "./componentPublicInstance";
+import {initProps} from "./componentProps";
+import {shallowReadonly} from "../reactivity/reactive";
 
 
 export function createComponentInstance(vnode:any){
@@ -7,12 +9,13 @@ export function createComponentInstance(vnode:any){
         vnode,
         type:vnode.type,// 这个是原始组件对象
         setupState:{}, // setup的返回结果对象
-        
+        props:{}
     }
 }
 export function setupComponent(instance:any){
     // 初始化处理 props
     // initProps
+    initProps(instance,instance.vnode.props)
     // 初始化处理插槽
     // initSlots
     // 创建一个有状态的组件
@@ -27,7 +30,7 @@ export function setStatefulComponent(instance:any){
     // 获取原始组件对象的 setup 方法
     const setup = component.setup
     if(setup){
-        const setupResult = setup()
+        const setupResult = setup(shallowReadonly(instance.props))
         // 处理setup结果
         handleSetupResult(instance,setupResult)
     }
