@@ -50,9 +50,17 @@ function mountElement(vnode:any,container:any){
         mountChildren(vnode,el)
     }
     // 处理属性
+    const isOn = (key:string)=>{return /on[A-z]/.test(key)}
     const {props} = vnode
     for(let key in props){
-        el.setAttribute(key,props[key])
+        let val = props[key]
+        // 处理事件
+        if(isOn(key)){
+            const eventName = key.slice(2).toLowerCase()
+            el.addEventListener(eventName,val)
+        }else{
+            el.setAttribute(key,val)
+        }
     }
     container.append(el)
 }

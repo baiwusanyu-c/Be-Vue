@@ -1,4 +1,4 @@
-import {isObject, isString} from "../shared/index";
+import {isArray, isObject, isString} from "../shared/index";
 import {shapeFlags} from "../shared/ShapeFlags";
 
 export function createVNode(rootComponent:any,props?:any,children?:any){
@@ -9,10 +9,10 @@ export function createVNode(rootComponent:any,props?:any,children?:any){
         shapeFlag:getShapeFlag(rootComponent),// 设置初始时点的 shapeFlag
     }
     if(isString(vnode.children)){
-        return shapeFlags.TEXT_CHILDREN
+        vnode.shapeFlag! |= shapeFlags.TEXT_CHILDREN
     }
-    if(isObject(vnode.children)){
-        return shapeFlags.ARRAY_CHILDREN
+    if(isArray(vnode.children)){
+        vnode.shapeFlag! |= shapeFlags.ARRAY_CHILDREN
     }
 
     return vnode
@@ -24,5 +24,4 @@ function getShapeFlag(type:any){
     if(isObject(type)){
         return shapeFlags.STATEFUL_COMPONENT
     }
-
 }

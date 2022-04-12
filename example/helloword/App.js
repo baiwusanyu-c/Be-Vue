@@ -14,8 +14,15 @@ export const App = {
             {
                 id:`hi be-vue${this.msg}`,
                 class:['aaa','qwdqwdasssssss'],
+                onClick(){
+                    console.log('click')
+                }
             },
-            [h('div',{id:`hi be-vue${this.msg}c`,class:['ccc']},'aswadda')]
+            [
+                h('div',{
+                id:`hi be-vue${this.msg}c`,class:['ccc']
+                },'aswadda')
+            ]
         )
     }
 }

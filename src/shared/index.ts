@@ -11,3 +11,5 @@ export const isArray = (raw:any):boolean =>{
 export const hasChanged =  (val:any,nVal:any):boolean =>{
     return !(Object.is(val,nVal))
 }
+
+export const hasOwn = (val:any,key:string):boolean => Object.prototype.hasOwnProperty.call(val,key)
