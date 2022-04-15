@@ -1,6 +1,7 @@
 import {createComponentInstance, setupComponent} from "./component";
 import {isArray, isObject, isString} from "../shared/index";
 import {shapeFlags} from "../shared/ShapeFlags";
+import {createVNode} from "./vnode";
 
 export function render(vnode:any,container:any){
     patch(vnode,container)
@@ -66,7 +67,7 @@ function mountElement(vnode:any,container:any){
 }
 function mountChildren(vnode:any,container:any){
     vnode.children.forEach((elm:any) =>{
-        patch(elm,container)
+        patch(isString(elm) ? createVNode(elm) : elm,container)
     })
 }
 

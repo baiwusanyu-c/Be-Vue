@@ -13,3 +13,15 @@ export const hasChanged =  (val:any,nVal:any):boolean =>{
 }
 
 export const hasOwn = (val:any,key:string):boolean => Object.prototype.hasOwnProperty.call(val,key)
+
+export const toHandlerKey = (str:string) =>{
+    return str ? `on${capitalize(str)}`:'';
+}
+export const capitalize = (str:string) =>{
+    return str.charAt(0).toUpperCase() + str.slice(1)
+}
+export const camelize = (str:string) =>{
+    return str.replace(/-(\w)/g,(_,c):string=>{
+        return c ? c.toUpperCase() : ''
+    })
+}
