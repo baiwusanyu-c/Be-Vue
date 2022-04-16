@@ -16,8 +16,7 @@ export const App = {
                 class: ['aaa', 'qwdqwdasssssss'],
             },
             [
-               /* 'ComponentEmit',
-                'ComponentEmit',*/
+                'ComponentEmit',
                 h(foo,{
                     onAdd(...data){
                         console.log('emit onAdd',...data)
@@ -26,6 +25,7 @@ export const App = {
                         console.log('emit onAddFoo',...data)
                     }
                 }),
+
             ]
         )
     }

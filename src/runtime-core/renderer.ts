@@ -1,8 +1,8 @@
 import {createComponentInstance, setupComponent} from "./component";
-import {isArray, isObject, isString} from "../shared/index";
+import {isString} from "../shared/index";
 import {shapeFlags} from "../shared/ShapeFlags";
 import {createVNode} from "./vnode";
-
+export const TEXT = Symbol()
 export function render(vnode:any,container:any){
     patch(vnode,container)
 }
@@ -40,8 +40,13 @@ function processElement(vnode:any,container:any){
  * @param container
  */
 function mountElement(vnode:any,container:any){
-    const el = (vnode.el = document.createElement(vnode.type))
+    // czh
     let {children,shapeFlag} = vnode
+    if(vnode.type === TEXT){
+        container.textContent = children
+        return
+    }
+    const el = (vnode.el = document.createElement(vnode.type))
     // 如果是文本元素就插入
     if(shapeFlag & shapeFlags.TEXT_CHILDREN){
         el.textContent = children
@@ -67,7 +72,9 @@ function mountElement(vnode:any,container:any){
 }
 function mountChildren(vnode:any,container:any){
     vnode.children.forEach((elm:any) =>{
-        patch(isString(elm) ? createVNode(elm) : elm,container)
+        // czh
+        patch(isString(elm) ? createVNode(TEXT,null,elm) : elm,container)
+
     })
 }
 
