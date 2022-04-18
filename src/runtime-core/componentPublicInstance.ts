@@ -1,7 +1,8 @@
 import {hasOwn} from "../shared/index";
 
 const publicPropertiesMap:any = {
-    $el:(i:any)=>{return i.vnode.el}
+    $el:(i:any)=>{return i.vnode.el},
+    $slots:(i:any)=>{return i.slots}
 }
 
 

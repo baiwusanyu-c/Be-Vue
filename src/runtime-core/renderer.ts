@@ -13,6 +13,7 @@ export function render(vnode:any,container:any){
  * @param container
  */
 export function patch(vnode:any,container:any){
+    if(!vnode) {return}
     // 根据 vnode 类型不同，进行不同处理
     // 处理 element类型
     const {shapeFlag} = vnode

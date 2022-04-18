@@ -3,6 +3,7 @@ import {PublicInstanceProxuHandlers} from "./componentPublicInstance";
 import {initProps} from "./componentProps";
 import {shallowReadonly} from "../reactivity/reactive";
 import {emit} from "./componentEmit";
+import {initSlots} from "./componentSlots";
 
 
 export function createComponentInstance(vnode:any){
@@ -11,7 +12,8 @@ export function createComponentInstance(vnode:any){
         type:vnode.type,// 这个是原始组件对象
         setupState:{}, // setup的返回结果对象
         props:{},
-        emit:(event: string, ...arg: any[])=>{}
+        emit:(event: string, ...arg: any[])=>{},
+        slots:{}
     }
     instance.emit = emit.bind(null,instance)
     return instance
@@ -21,7 +23,7 @@ export function setupComponent(instance:any){
     // initProps
     initProps(instance,instance.vnode.props)
     // 初始化处理插槽
-    // initSlots
+    initSlots(instance,instance.vnode.children)
     // 创建一个有状态的组件
     setStatefulComponent(instance)
 }

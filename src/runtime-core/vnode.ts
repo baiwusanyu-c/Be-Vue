@@ -20,6 +20,12 @@ export function createVNode(rootComponent: any, props?: any, children?: any) {
     if (isArray(vnode.children)) {
         vnode.shapeFlag! |= shapeFlags.ARRAY_CHILDREN
     }
+    // 判断slots
+    if(vnode.shapeFlag! & shapeFlags.STATEFUL_COMPONENT){
+        if (isObject(vnode.children)) {
+            vnode.shapeFlag! |= shapeFlags.SLOTS_CHILDREN
+        }
+    }
 
     return vnode
 }
