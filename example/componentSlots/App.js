@@ -1,4 +1,4 @@
-import {h} from '../../lib/be-vue.esm.js'
+import {createTextVNode, h} from '../../lib/be-vue.esm.js'
 import foo from "./foo.js";
 
 console.log(foo)
@@ -17,7 +17,7 @@ export const App = {
                 class: ['aaa', 'qwdqwdasssssss'],
             },
             [
-                'ComponentEmit',
+                createTextVNode('ComponentEmit'),
                 h(foo,
                     {},
                     {

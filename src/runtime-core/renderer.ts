@@ -24,7 +24,7 @@ export function patch(vnode: any, container: any) {
             processText(vnode, container)
             break;
         case  FRAGMENT:
-           // processText(vnode, container)
+            processFragment(vnode, container)
             break;
         default:{
             if (shapeFlag & shapeFlags.ELEMENT) {
@@ -125,6 +125,15 @@ function setupRenderEffect(instance: any, vnode: any, container: any) {
     vnode.el = subTree.el
 }
 
+/**
+ * 处理fragment
+ * @param vnode
+ * @param container
+ */
+function processFragment(vnode: any, container: any) {
+    mountChildren(vnode,container)
+
+}
 /**
  * 处理文本方法
  * @param vnode
