@@ -1,18 +1,14 @@
 import {isArray, isObject, isString} from "../shared/index";
 import {shapeFlags} from "../shared/ShapeFlags";
-import {TEXT} from "./renderer";
-
-export function createVNode(rootComponent: any, props?: any, children?: any) {
+export const TEXT = Symbol('TEXT')
+export const FRAGMENT = Symbol('FRAGMENT')
+export function createVNode(type: any, props?: any, children?: any) {
     const vnode = {
         __is_VNode: true,
-        type: rootComponent,
+        type: type,
         props,
         children,
-        shapeFlag: getShapeFlag(rootComponent),// 设置初始时点的 shapeFlag
-    }
-    // czh
-    if(rootComponent === TEXT){
-        vnode.shapeFlag! |= shapeFlags.ELEMENT
+        shapeFlag: getShapeFlag(type),// 设置初始时点的 shapeFlag
     }
     if (isString(vnode.children)) {
         vnode.shapeFlag! |= shapeFlags.TEXT_CHILDREN
@@ -38,7 +34,9 @@ function getShapeFlag(type: any) {
         return shapeFlags.STATEFUL_COMPONENT
     }
 }
-
+export function createTextVNode(children:string){
+    return createVNode(TEXT,{},children)
+}
 export function isVNode(target: any) {
     if (isObject(target)){
         return false
