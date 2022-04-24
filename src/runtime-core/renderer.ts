@@ -1,18 +1,18 @@
 import {createComponentInstance, setupComponent} from "./component";
-import {isString} from "../shared/index";
 import {shapeFlags} from "../shared/ShapeFlags";
-import {createVNode, FRAGMENT, TEXT} from "./vnode";
+import {FRAGMENT, TEXT} from "./vnode";
 
 export function render(vnode: any, container: any) {
-    patch(vnode, container)
+    patch(vnode, container,null)
 }
 
 /**
  * patch方法
  * @param vnode
  * @param container
+ * @param parent
  */
-export function patch(vnode: any, container: any) {
+export function patch(vnode: any, container: any,parent:any) {
     if (!vnode) {
         return
     }
@@ -24,15 +24,15 @@ export function patch(vnode: any, container: any) {
             processText(vnode, container)
             break;
         case  FRAGMENT:
-            processFragment(vnode, container)
+            processFragment(vnode, container,parent)
             break;
         default:{
             if (shapeFlag & shapeFlags.ELEMENT) {
-                processElement(vnode, container)
+                processElement(vnode, container,parent)
             }
             // 处理组件类型
             if (shapeFlag & shapeFlags.STATEFUL_COMPONENT) {
-                processComponent(vnode, container)
+                processComponent(vnode, container,parent)
             }
         }
     }
@@ -46,16 +46,17 @@ export function patch(vnode: any, container: any) {
  * @param container
  */
 
-function processElement(vnode: any, container: any) {
-    mountElement(vnode, container)
+function processElement(vnode: any, container: any,parent:any) {
+    mountElement(vnode, container,parent)
 }
 
 /**
  * 挂载元素方法
  * @param vnode
  * @param container
+ * @param parent
  */
-function mountElement(vnode: any, container: any) {
+function mountElement(vnode: any, container: any,parent:any) {
     const el = (vnode.el = document.createElement(vnode.type))
     let {children, shapeFlag} = vnode
     // 如果是文本元素就插入
@@ -64,7 +65,7 @@ function mountElement(vnode: any, container: any) {
     }
     // 是数组就递归 patch 子节点
     if (shapeFlag & shapeFlags.ARRAY_CHILDREN) {
-        mountChildren(vnode, el)
+        mountChildren(vnode, el,parent)
     }
     // 处理属性
     const isOn = (key: string) => {
@@ -84,9 +85,9 @@ function mountElement(vnode: any, container: any) {
     container.append(el)
 }
 
-function mountChildren(vnode: any, container: any) {
+function mountChildren(vnode: any, container: any,parent:any) {
     vnode.children.forEach((elm: any) => {
-        patch(elm, container)
+        patch(elm, container,parent)
     })
 }
 
@@ -94,19 +95,21 @@ function mountChildren(vnode: any, container: any) {
  * 处理组件方法
  * @param vnode
  * @param container
+ * @param parent
  */
-function processComponent(vnode: any, container: any) {
-    mountComponent(vnode, container)
+function processComponent(vnode: any, container: any,parent:any) {
+    mountComponent(vnode, container,parent)
 }
 
 /**
  * 挂载组件方法
  * @param vnode
  * @param container
+ * @param parent
  */
-function mountComponent(vnode: any, container: any) {
+function mountComponent(vnode: any, container: any,parent:any) {
     // 创建组件实例
-    const instance = createComponentInstance(vnode)
+    const instance = createComponentInstance(vnode,parent)
     // 开始 处理组件setup
     setupComponent(instance)
     // 开始处理 setup 运行完成后内涵的子节点
@@ -120,7 +123,7 @@ function setupRenderEffect(instance: any, vnode: any, container: any) {
     // 但是他一定是上一轮的子树
     const subTree = instance.render.call(instance.proxy)
     // 再次 patch，处理子树
-    patch(subTree, container)
+    patch(subTree, container,instance)
     // 记录根组件对应的el
     vnode.el = subTree.el
 }
@@ -129,9 +132,10 @@ function setupRenderEffect(instance: any, vnode: any, container: any) {
  * 处理fragment
  * @param vnode
  * @param container
+ * @param parent
  */
-function processFragment(vnode: any, container: any) {
-    mountChildren(vnode,container)
+function processFragment(vnode: any, container: any,parent:any) {
+    mountChildren(vnode,container,parent)
 
 }
 /**
