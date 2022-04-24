@@ -1,5 +1,5 @@
 import {isObject} from "../shared/index";
-import {PublicInstanceProxuHandlers} from "./componentPublicInstance";
+import {PublicInstanceProxyHandlers} from "./componentPublicInstance";
 import {initProps} from "./componentProps";
 import {shallowReadonly} from "../reactivity/reactive";
 import {emit} from "./componentEmit";
@@ -32,13 +32,16 @@ export function setStatefulComponent(instance:any){
     // 获取原始组件对象（注意这里并不是组件实例）
     const component = instance.type
     // 创建要给组件实例代理，使得render方法内能够通过this访问组件实例,如this.$el等
-    instance.proxy = new Proxy({_:instance},PublicInstanceProxuHandlers)
+    instance.proxy = new Proxy({_:instance},PublicInstanceProxyHandlers)
     // 获取原始组件对象的 setup 方法
     const setup = component.setup
     if(setup){
+        // ao yong setup qian  she zhi instance
+        setCurrentInstance(instance)
         const setupResult = setup(shallowReadonly(instance.props),{
             emit:instance.emit
         })
+        setCurrentInstance(instance)
         // 处理setup结果
         handleSetupResult(instance,setupResult)
     }
@@ -58,7 +61,14 @@ export function finishComponentSetup(instance:any){
     const component = instance.type
     // 如果组件 instance 上用户render // render 优先级 setup的返回render，组件内option的render，template
     if(component.render){
-        // 就是用用户写的 render的option
+        // 就是用用户render的option
         instance.render = component.render
     }
+}
+let currentInstance:any = null
+export function getCurrentInstance() {
+    return currentInstance
+}
+export function setCurrentInstance(instance:any) {
+    currentInstance = instance
 }

@@ -6,7 +6,7 @@ const publicPropertiesMap:any = {
 }
 
 
-export const PublicInstanceProxuHandlers = {
+export const PublicInstanceProxyHandlers = {
     // @ts-ignore
     get({_:instance}, key:any, receiver: any): any {
         const {setupState,props} = instance
