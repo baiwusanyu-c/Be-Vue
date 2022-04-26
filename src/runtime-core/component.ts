@@ -15,6 +15,8 @@ export function createComponentInstance(vnode:any,parent:any){
         props:{},
         provides:parent ? parent.provides : {},
         parent,
+        isMounted:false,// 标记是否初始化过
+        subTree:{},// 子虚拟节点树
         emit:(event: string, ...arg: any[])=>{},
         slots:{}
     }
