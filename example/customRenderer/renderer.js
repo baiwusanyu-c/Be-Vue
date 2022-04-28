@@ -11,7 +11,7 @@ const renderer = createRenderer({
         return rect;
     },
 
-    patchProps(el, key, prevValue, nextValue) {
+    patchProp(el, key, prevValue, nextValue) {
         el[key] = nextValue;
     },
 

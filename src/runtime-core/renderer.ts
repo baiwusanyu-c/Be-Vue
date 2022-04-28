@@ -3,11 +3,12 @@ import {shapeFlags} from "../shared/ShapeFlags";
 import {FRAGMENT, TEXT} from "./vnode";
 import {createAppApi} from "./createApp";
 import {effect} from "../reactivity";
+import {EMPTY_OBJ} from "../shared";
 
 export function createRenderer(option: any) {
     const {
         createElement:hostCreateElement,
-        patchProps: hostPatchProps,
+        patchProp: hostpatchProp,
         insert: hostInsert
     } = option
 
@@ -79,8 +80,41 @@ export function createRenderer(option: any) {
         console.log(n1)
         console.log('n2')
         console.log(n2)
+        const el = (n2.el = n1.el)
+        const oldProps = n1.props || EMPTY_OBJ
+        const newProps = n2.props || EMPTY_OBJ
+        patchProps(oldProps,newProps,el)
     }
 
+    /**
+     * 处props
+     */
+    function patchProps(oldProps:any,newProps:any,el:any){
+        if(oldProps !== newProps){
+            for(let key in newProps){
+                const prevProps = oldProps[key]
+                const nextProps = newProps[key]
+                // props 被修改为了 null 或 undefined，我们需要删除
+                if(nextProps === null || nextProps === undefined){
+                    hostpatchProp(el,key,prevProps,null)
+                }
+                // props 发生了改变 'foo' => 'new foo',我们需要修改
+                if(prevProps !== nextProps){
+                    hostpatchProp(el,key,prevProps,nextProps)
+                }
+            }
+            if(EMPTY_OBJ !== oldProps){
+                for(let key in oldProps){
+                    const prevProps = oldProps[key]
+                    const nextProps = newProps[key]
+                    // props 在新的VNode中不存在，而旧的VNode中还存在，则删除
+                    if(!nextProps){
+                        hostpatchProp(el,key,prevProps,nextProps)
+                    }
+                }
+            }
+        }
+    }
     /**
      * 挂载元素方法
      * @param vnode
@@ -103,7 +137,10 @@ export function createRenderer(option: any) {
         // 处理属性
 
         const {props} = vnode
-        hostPatchProps(el,props)
+        for (let key in props) {
+            let val = props[key]
+            hostpatchProp(el,key,null,val)
+        }
         // insert the el to container
         hostInsert(el, container)
     }

@@ -3,20 +3,29 @@ import {createRenderer} from "../runtime-core/renderer";
 function createElement(type:string) {
     return document.createElement(type)
 }
-function patchProps(el:any,props:any) {
+
+/**
+ * 渲染props
+ * @param el
+ * @param props
+ */
+function patchProp(el:any,key:string,oldVal:any,newVal:any) {
+    debugger
     const isOn = (key: string) => {
         return /on[A-z]/.test(key)
     }
-    for (let key in props) {
-        let val = props[key]
-        // 处理事件
-        if (isOn(key)) {
-            const eventName = key.slice(2).toLowerCase()
-            el.addEventListener(eventName, val)
-        } else {
-            el.setAttribute(key, val)
+    // 处理事件
+    if (isOn(key)) {
+        const eventName = key.slice(2).toLowerCase()
+        el.addEventListener(eventName, newVal)
+    } else {
+        if(newVal === null || newVal === undefined){
+            el.removeAttribute(key)
+        }else{
+            el.setAttribute(key, newVal)
         }
     }
+
 }
 function insert(el:any, container:any) {
     container.append(el)
@@ -24,7 +33,7 @@ function insert(el:any, container:any) {
 
 const renderer:any = createRenderer({
     createElement,
-    patchProps,
+    patchProp,
     insert,
 })
 
