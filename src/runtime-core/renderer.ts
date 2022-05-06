@@ -8,8 +8,10 @@ import {EMPTY_OBJ} from "../shared";
 export function createRenderer(option: any) {
     const {
         createElement:hostCreateElement,
-        patchProp: hostpatchProp,
-        insert: hostInsert
+        patchProp: hostPatchProp,
+        insert: hostInsert,
+        setElementText:hostSetElementText,
+        remove:hostRemove
     } = option
 
     function render(n1:any,n2: any, container: any) {
@@ -61,10 +63,9 @@ export function createRenderer(option: any) {
 
     function processElement(n1:any,n2: any, container: any, parent: any) {
         if(!n1){
-            console.log('init Element')
             mountElement(n2, container, parent)
         }else{
-            patchElement(n1,n2,container)
+            patchElement(n1,n2,container,parent)
         }
 
     }
@@ -74,7 +75,7 @@ export function createRenderer(option: any) {
      * @param n2 新的虚拟节点
      * @param container
      */
-    function patchElement(n1:any,n2: any, container: any){
+    function patchElement(n1:any,n2: any, container: any,parent: any) {
         console.log('patch Element')
         console.log('n1')
         console.log(n1)
@@ -83,9 +84,38 @@ export function createRenderer(option: any) {
         const el = (n2.el = n1.el)
         const oldProps = n1.props || EMPTY_OBJ
         const newProps = n2.props || EMPTY_OBJ
+        patchChildren(n1,n2, el,parent)
         patchProps(oldProps,newProps,el)
     }
+    function patchChildren(n1:any,n2: any, container: any,parent: any) {
+        const prevShapeFlag = n1.shapeFlag
+        const c1 = n1.children
+        const shapeFlag = n2.shapeFlag
+        const c2 = n2.children
+        // 
+        if(shapeFlag & shapeFlags.TEXT_CHILDREN){
 
+            if(prevShapeFlag & shapeFlags.ARRAY_CHILDREN){
+                unmountChildren(c1)
+            }
+            if(c1 !== c2){
+                hostSetElementText(container,c2)
+            }
+        }else{
+            if(prevShapeFlag & shapeFlags.TEXT_CHILDREN){
+                //
+                hostSetElementText(container,'')
+                mountChildren(c2,container,parent)
+            }
+        }
+    }
+    function unmountChildren(children:Array<any>) {
+        for(let i:number = 0;i<children.length;i++){
+            const el = children[i].el
+            hostRemove(el)
+        }
+
+    }
     /**
      * 处props
      */
@@ -96,11 +126,11 @@ export function createRenderer(option: any) {
                 const nextProps = newProps[key]
                 // props 被修改为了 null 或 undefined，我们需要删除
                 if(nextProps === null || nextProps === undefined){
-                    hostpatchProp(el,key,prevProps,null)
+                    hostPatchProp(el,key,prevProps,null)
                 }
                 // props 发生了改变 'foo' => 'new foo',我们需要修改
                 if(prevProps !== nextProps){
-                    hostpatchProp(el,key,prevProps,nextProps)
+                    hostPatchProp(el,key,prevProps,nextProps)
                 }
             }
             if(EMPTY_OBJ !== oldProps){
@@ -109,7 +139,7 @@ export function createRenderer(option: any) {
                     const nextProps = newProps[key]
                     // props 在新的VNode中不存在，而旧的VNode中还存在，则删除
                     if(!nextProps){
-                        hostpatchProp(el,key,prevProps,nextProps)
+                        hostPatchProp(el,key,prevProps,nextProps)
                     }
                 }
             }
@@ -132,21 +162,21 @@ export function createRenderer(option: any) {
         }
         // 是数组就递归 patch 子节点
         if (shapeFlag & shapeFlags.ARRAY_CHILDREN) {
-            mountChildren(vnode, el, parent)
+            mountChildren(vnode.children, el, parent)
         }
         // 处理属性
 
         const {props} = vnode
         for (let key in props) {
             let val = props[key]
-            hostpatchProp(el,key,null,val)
+            hostPatchProp(el,key,null,val)
         }
         // insert the el to container
         hostInsert(el, container)
     }
 
-    function mountChildren(vnode: any, container: any, parent: any) {
-        vnode.children.forEach((elm: any) => {
+    function mountChildren(children: any, container: any, parent: any) {
+        children.forEach((elm: any) => {
             patch(null,elm, container, parent)
         })
     }
@@ -213,7 +243,7 @@ export function createRenderer(option: any) {
      * @param parent
      */
     function processFragment(n1:any,n2: any,container: any, parent: any) {
-        mountChildren(n2, container, parent)
+        mountChildren(n2.children, container, parent)
     }
 
     /**

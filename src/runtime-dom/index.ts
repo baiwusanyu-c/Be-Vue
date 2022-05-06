@@ -10,7 +10,6 @@ function createElement(type:string) {
  * @param props
  */
 function patchProp(el:any,key:string,oldVal:any,newVal:any) {
-    debugger
     const isOn = (key: string) => {
         return /on[A-z]/.test(key)
     }
@@ -30,11 +29,19 @@ function patchProp(el:any,key:string,oldVal:any,newVal:any) {
 function insert(el:any, container:any) {
     container.append(el)
 }
-
+function setElementText(container:any,text:string) {
+    container.textContent = text
+}
+function remove(el:any) {
+    const parent = el.parentNode
+    parent && parent.removeChild(el)
+}
 const renderer:any = createRenderer({
     createElement,
     patchProp,
     insert,
+    remove,
+    setElementText,
 })
 
 export function createApp(...args:any[]){
