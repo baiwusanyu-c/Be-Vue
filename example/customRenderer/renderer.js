@@ -15,8 +15,8 @@ const renderer = createRenderer({
         el[key] = nextValue;
     },
 
-    insert(el, parent) {
-        parent.addChild(el);
+    insert(el, parent,anchor) {
+        parent.insertBefore(el,anchor || null);
     },
 });
 

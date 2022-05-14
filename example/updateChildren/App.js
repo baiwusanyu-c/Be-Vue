@@ -2,6 +2,7 @@ import {h} from '../../lib/be-vue.esm.js'
 import ArrayToText from './ArrayToText.js'
 import TextToText from './TextToText.js'
 import TextToArray from './TextToArray.js'
+import ArrayToArray from './ArrayToArray.js'
 export const App = {
     // .vue
     setup() {},
@@ -18,7 +19,7 @@ export const App = {
                     },
                     `home`
                 ),
-                h(ArrayToText),
+                h(ArrayToArray),
                 //h(TextToText),
                //h(TextToArray),
             ]
