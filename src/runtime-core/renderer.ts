@@ -183,6 +183,54 @@ export function createRenderer(option: any) {
                 }
             }
         }
+        // 处理中间部分节点序列
+        //
+        let s1 = indexStart;
+        let s2 = indexStart
+        // 新的中间部分节点序列数量
+        let newChildNum = newIndexEnd - indexStart + 1
+        // 已经处理过的中间节点序列数量
+        let patched = 0
+        // 新的中间部分节点序列映射表
+        let newToIndexMap = new Map()
+        // 建立映射
+        for(let i = 0;i < s2;i++){
+            if(c2[i].key){
+                newToIndexMap.set(c2.key,i)
+            }
+        }
+        // 遍历旧中间部分节点序列
+        for(let i = 0;i < s1;i++){
+            const prevChild = c1[i]
+            // 新的节点序列比旧的先处理完，旧的剩余的统统删除
+            if(patched >= newChildNum){
+                hostRemove(prevChild.el)
+                continue
+            }
+            // 当前旧节点在新序列中索引
+            // 这里是用旧的节点去新的节点序列中查找，看是否找到
+            let oldInNewIndex
+            // 如果传了key，就用映射表，否则就要遍历新的序列
+            if(prevChild.key){
+                oldInNewIndex = newToIndexMap.get(prevChild.key)
+            }else{
+                for(let j = 0;j < s2;j++){
+                    if(isSameVNode(prevChild,c2[j])){
+                        oldInNewIndex = j
+                        break;
+                    }
+                }
+            }
+            // 旧的节点不在新的节点序列中，删除旧节点
+            if(oldInNewIndex === null){
+               hostRemove(prevChild.el)
+            }else{
+                // 旧的节点在新的节点序列中，递归patch
+                patch(prevChild,c2[oldInNewIndex],container,parent,null)
+                // 记录已处理的新节点数量
+                patched++
+            }
+        }
 
     }
     function isSameVNode(n1:any,n2:any){
