@@ -224,7 +224,7 @@ export function createRenderer(option: any) {
                 if (prevChild.key) {
                     oldInNewIndex = newToIndexMap.get(prevChild.key)
                 } else {
-                    for (let j = 0; j < s2; j++) {
+                    for (let j = 0; j <= s2; j++) {
                         if (isSameVNode(prevChild, c2[j])) {
                             oldInNewIndex = j
                             break;
