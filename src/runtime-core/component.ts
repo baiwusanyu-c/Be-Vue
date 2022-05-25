@@ -13,6 +13,7 @@ export function createComponentInstance(vnode:any,parent:any){
         type:vnode.type,// 这个是原始组件对象
         setupState:{}, // setup的返回结果对象
         props:{},
+        next:null,// 待更新的新虚拟节点
         provides:parent ? parent.provides : {},
         parent,
         isMounted:false,// 标记是否初始化过
