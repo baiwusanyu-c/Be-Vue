@@ -5,7 +5,7 @@ let isFlushPending = false
 export function nextTick(fn:any) {
     return fn ? p.then(fn) : p
 }
-export function queueJobs(c:any) {
+export function queueJobs(c:any):void {
     if(!queue.includes(queue)){
         queue.push(queue)
     }

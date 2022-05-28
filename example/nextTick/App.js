@@ -1,12 +1,16 @@
-import {h,ref} from '../../lib/be-vue.esm.js'
+import {h,ref,nextTick,getCurrentInstance} from '../../lib/be-vue.esm.js'
 export const App = {
     // .vue
     setup() {
         const count = ref(0)
+        let inst = getCurrentInstance()
         const handleClick = () =>{
             for(let i = 0;i < 100; i++){
                 count.value++
             }
+            nextTick(()=>{
+                console.log(inst)
+            })
         }
         return {
             handleClick,

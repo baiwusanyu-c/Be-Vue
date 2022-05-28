@@ -5,6 +5,7 @@ import {createAppApi} from "./createApp";
 import {effect} from "../reactivity";
 import {EMPTY_OBJ} from "../shared";
 import {shouldUpdateComponent} from "./componentUpdateUtils";
+import {queueJobs} from "./scheduler";
 
 export function createRenderer(option: any) {
     const {
@@ -414,6 +415,8 @@ export function createRenderer(option: any) {
 
     function setupRenderEffect(instance: any, vnode: any, container: any, anchor: any) {
         // 缓存runner，在组件更新时调用
+        // @ts-ignore
+        // @ts-ignore
         instance.update = effect(() => {
             // 调用render函数，拿到子树vnode，这个值可能是组件也可能是元素或其他，
             // 但是他一定是上一轮的子树
@@ -443,6 +446,12 @@ export function createRenderer(option: any) {
                 patch(prevSubTree, subTree, container, instance, anchor)
                 // 记录根组件对应的el
                 vnode.el = subTree.el
+            }
+        },{
+            // @ts-ignore
+            scheduler:()=>{
+                console.log('scheduler update')
+                queueJobs(instance.update)
             }
         })
 
