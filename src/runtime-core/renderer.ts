@@ -4,6 +4,7 @@ import {FRAGMENT, TEXT} from "./vnode";
 import {createAppApi} from "./createApp";
 import {effect} from "../reactivity";
 import {EMPTY_OBJ} from "../shared";
+import {shouldUpdateComponent} from "./componentUpdateUtils";
 
 export function createRenderer(option: any) {
     const {
@@ -224,7 +225,7 @@ export function createRenderer(option: any) {
                 if (prevChild.key) {
                     oldInNewIndex = newToIndexMap.get(prevChild.key)
                 } else {
-                    for (let j = 0; j < s2; j++) {
+                    for (let j = 0; j <= s2; j++) {
                         if (isSameVNode(prevChild, c2[j])) {
                             oldInNewIndex = j
                             break;
@@ -373,9 +374,27 @@ export function createRenderer(option: any) {
      * @param parent
      */
     function processComponent(n1: any, n2: any, container: any, parent: any, anchor: any) {
-        mountComponent(n2, container, parent, anchor)
-    }
+        if(!n1){
+            mountComponent(n2, container, parent, anchor)
+        }else {
+            // 更新组件
+            updateComponent(n1, n2)
+        }
 
+    }
+    function updateComponent(n1: any, n2: any){
+        const instance = (n2.components = n1.components)
+        // 对比props 看是否需要更新
+        if(shouldUpdateComponent(n1,n2)){
+            instance.next = n2
+            // 更新组件
+            instance.update()
+        }else{
+            // 不更新，也要跟新实力上的el、vnode
+           n2.el = n1.el
+           instance.vnode = n2
+        }
+    }
     /**
      * 挂载组件方法
      * @param vnode
@@ -384,7 +403,7 @@ export function createRenderer(option: any) {
      */
     function mountComponent(vnode: any, container: any, parent: any, anchor: any) {
         // 创建组件实例
-        const instance = createComponentInstance(vnode, parent)
+        const instance = (vnode.components = createComponentInstance(vnode, parent))
         // 开始 处理组件setup
         setupComponent(instance)
         // 开始处理 setup 运行完成后内涵的子节点
@@ -394,19 +413,29 @@ export function createRenderer(option: any) {
     }
 
     function setupRenderEffect(instance: any, vnode: any, container: any, anchor: any) {
-        effect(() => {
+        // 缓存runner，在组件更新时调用
+        instance.update = effect(() => {
             // 调用render函数，拿到子树vnode，这个值可能是组件也可能是元素或其他，
             // 但是他一定是上一轮的子树
             const subTree = instance.render.call(instance.proxy)
             // 初始化逻辑
             if (!instance.isMounted) {
-                instance.subTree = subTree
+                const subTree = (instance.subTree = instance.render.call(instance.proxy))
+
                 // 再次 patch，处理子树
                 patch(null, subTree, container, instance, anchor)
                 // 记录根组件对应的el
                 vnode.el = subTree.el
                 instance.isMounted = true
             } else {
+                // 更新el、props、vnode
+                const {next} = instance
+                if(next){
+                    // 更新el
+                    next.el = vnode.el
+                    updateComponentPreRender(instance,next)
+                }
+                const subTree = instance.render.call(instance.proxy)
                 // 更新逻辑
                 const prevSubTree = instance.subTree
                 instance.subTree = subTree
@@ -418,7 +447,11 @@ export function createRenderer(option: any) {
         })
 
     }
-
+    function updateComponentPreRender(instance:any,nextVNode:any){
+        instance.vnode = nextVNode
+        instance.next = null
+        instance.props = nextVNode.props
+    }
     /**
      * 处理fragment
      * @param n1 旧的虚拟节点

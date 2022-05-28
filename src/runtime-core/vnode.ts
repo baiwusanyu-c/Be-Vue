@@ -8,6 +8,7 @@ export function createVNode(type: any, props?: any, children?: any) {
         type: type,
         props,
         children,
+        components:null,// 组件实例
         shapeFlag: getShapeFlag(type),// 设置初始时点的 shapeFlag
     }
     if (isString(vnode.children)) {
