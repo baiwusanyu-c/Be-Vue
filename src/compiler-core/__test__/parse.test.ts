@@ -15,11 +15,20 @@ describe('Parse',()=>{
         })
     })
     describe('parse Element',()=>{
-        test('simple interpolation',()=>{
+        test('simple Element',()=>{
             const ast = baseParse('<div></div>')
             expect(ast.children[0]).toStrictEqual({
                 type:nodeTypes.ELEMENT,
                 tag:'div'
+            })
+        })
+    })
+    describe('parse Text',()=>{
+        test('simple Text',()=>{
+            const ast = baseParse('some text')
+            expect(ast.children[0]).toStrictEqual({
+                type:nodeTypes.TEXT,
+                content:'some text'
             })
         })
     })

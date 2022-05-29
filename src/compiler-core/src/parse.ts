@@ -25,11 +25,11 @@ function parseInterpolation(context: any) {
     let closeIndex = context.source.indexOf(closeDelimiter,startDelimiter.length)
     // 消费 '{{'
     advanceBy(context,startDelimiter.length)
-    // 截取 content
-    let rawContent = context.source.slice(0,closeIndex - startDelimiter.length)
-    let content = rawContent.trim()
+    // 截取 content && 消费 content
+    let rawContent =   parseTextData(context,closeIndex - startDelimiter.length)
     // 消费 '}}'
-    advanceBy(context,rawContent.length + closeDelimiter.length)
+    advanceBy(context,closeDelimiter.length)
+    let content = rawContent.trim()
     return {
         type:nodeTypes.INTERPOLATION,
         content:{
@@ -64,6 +64,21 @@ function parseTg(context: any,type:TagType) {
     return tag;
 }
 
+function parseText(context: any) {
+    const content = parseTextData(context,context.source.length)
+    console.log(context.source)
+    return {
+        type: nodeTypes.TEXT,
+        content
+    }
+}
+function parseTextData(context: any,length:number) {
+    const content = context.source.slice(0,length)
+    // 消费
+    advanceBy(context,length)
+    return content
+}
+
 // 解析 children
 function parseChildren(context: any) {
     const nodes = []
@@ -77,6 +92,9 @@ function parseChildren(context: any) {
         if(/[a-z]/i.test(s[1])){
             node =  parseElement(context)
         }
+    }else{
+        // 默认当做文本解析
+        node =  parseText(context)
     }
 
     nodes.push(node)
