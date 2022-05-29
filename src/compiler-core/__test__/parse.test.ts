@@ -19,7 +19,8 @@ describe('Parse',()=>{
             const ast = baseParse('<div></div>')
             expect(ast.children[0]).toStrictEqual({
                 type:nodeTypes.ELEMENT,
-                tag:'div'
+                tag:'div',
+                children:[]
             })
         })
     })
@@ -30,6 +31,63 @@ describe('Parse',()=>{
                 type:nodeTypes.TEXT,
                 content:'some text'
             })
+        })
+    })
+    describe('happy path',()=>{
+        test('three case one',()=>{
+            const ast = baseParse('<p>czh,{{message}}</p>')
+            expect(ast.children[0]).toStrictEqual({
+                type:nodeTypes.ELEMENT,
+                tag:'p',
+                children:[
+                    {
+                        type:nodeTypes.TEXT,
+                        content:'czh,'
+                    },
+                    {
+                        type:nodeTypes.INTERPOLATION,
+                        content:{
+                            type:nodeTypes.SIMPLE_EXPRESSION,
+                            content:'message'
+                        }
+                    }
+                ]
+
+            })
+        })
+        test('nested element',()=>{
+            const ast = baseParse('<div><p>czh,</p>{{message}}</div>')
+            expect(ast.children[0]).toStrictEqual({
+                type:nodeTypes.ELEMENT,
+                tag:'div',
+                children:[
+                    {
+                        type:nodeTypes.ELEMENT,
+                        tag:'p',
+                        children:[
+                            {
+                                type:nodeTypes.TEXT,
+                                content:'czh,'
+                            }
+                        ]
+                    },
+                    {
+                        type:nodeTypes.INTERPOLATION,
+                        content:{
+                            type:nodeTypes.SIMPLE_EXPRESSION,
+                            content:'message'
+                        }
+                    }
+                ]
+
+            })
+        })
+
+        test('should throw err when lack end tag',()=>{
+
+            expect(()=>{
+                baseParse('<div><p></div>')
+            }).toThrow(`lack the end tag p`)
         })
     })
 })

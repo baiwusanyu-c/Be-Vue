@@ -42,14 +42,22 @@ function advanceBy(context:any,index:any) {
     context.source = context.source.slice(index)
 }
 
-function parseElement(context: any) {
+function startsWithEndTagOpen(source: any, tag: any) {
+    return source.startsWith('</') && tag.toLowerCase() === source.slice(2,tag.length + 2).toLowerCase()
+}
+
+function parseElement(context: any,ancestors:any) {
     // 匹配标签名
-    const tag = parseTg(context,TagType.start)
-    parseTg(context,TagType.end)
-    return {
-        type: nodeTypes.ELEMENT,
-        tag:tag
+    const element:any = parseTg(context,TagType.start)
+    ancestors.push(element)
+    element.children = parseChildren(context,ancestors)
+    ancestors.pop()
+    // 处理完children后，当前标签节点 和 上下文不匹配，则缺少关闭标签
+    if(!startsWithEndTagOpen(context.source,element.tag)){
+        throw new Error(`lack the end tag ${element.tag}`)
     }
+    parseTg(context,TagType.end)
+    return element
 }
 function parseTg(context: any,type:TagType) {
     // 匹配标签名
@@ -59,14 +67,25 @@ function parseTg(context: any,type:TagType) {
     advanceBy(context,match[0].length )
     // 消费 '>'
     advanceBy(context,1)
-
     if(type === TagType.end) return
-    return tag;
+    return {
+        type: nodeTypes.ELEMENT,
+        tag:tag,
+        children:[]
+    }
 }
 
 function parseText(context: any) {
-    const content = parseTextData(context,context.source.length)
-    console.log(context.source)
+    let s = context.source
+    let endIndex = s.length
+    let endToken = ['<','{{']
+    for (let i = 0;i < endToken.length;i++){
+        const index = s.indexOf(endToken[i])
+        if(index !== -1 && index < endIndex){
+            endIndex = index
+        }
+    }
+    const content = parseTextData(context,endIndex)
     return {
         type: nodeTypes.TEXT,
         content
@@ -80,29 +99,46 @@ function parseTextData(context: any,length:number) {
 }
 
 // 解析 children
-function parseChildren(context: any) {
+function parseChildren(context: any,ancestors:any) {
     const nodes = []
-    let node
-    let s:string = context.source
-    // 以 {{ 则走解析插值逻辑
-    if(s.startsWith('{{')){
-        node = parseInterpolation(context)
-    }else if(s[0] === '<'){
-        // 以 < 开头 且第二个字母为a-z 就当做element的标签解析
-        if(/[a-z]/i.test(s[1])){
-            node =  parseElement(context)
+    // 循环遍历children 字符串
+    while(!isEnd(context,ancestors)){
+        let node
+        let s:string = context.source
+        // 以 {{ 则走解析插值逻辑
+        if(s.startsWith('{{')){
+            node = parseInterpolation(context)
+        }else if(s[0] === '<'){
+            // 以 < 开头 且第二个字母为a-z 就当做element的标签解析
+            if(/[a-z]/i.test(s[1])){
+                node =  parseElement(context,ancestors)
+            }
+        }else{
+            // 默认当做文本解析
+            node =  parseText(context)
         }
-    }else{
-        // 默认当做文本解析
-        node =  parseText(context)
+        nodes.push(node)
     }
 
-    nodes.push(node)
     return nodes
 }
+function isEnd(context:any,ancestors:any) {
+ let s = context.source
+ if(s.startsWith(`</`)){
+     // 循环对比source 是否在缓存的标签数组中能找到‘开启标签’
+     for(let i = ancestors.length - 1;i >= 0;i--){
+         const tag = ancestors[i].tag
+         if(startsWithEndTagOpen(s,tag)){
+             return true
+         }
 
+     }
+
+ }
+ return !context.source
+}
 
 export function baseParse(content:string) {
     const context = createParserContext(content)
-    return createRoot(parseChildren(context))
+    return createRoot(parseChildren(context,[]))
 }
