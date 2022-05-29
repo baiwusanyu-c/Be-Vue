@@ -1,7 +1,32 @@
 # vue知识点总结
-## reacttive 响应式系统
+## reactive 响应式系统
+### reactive 的基本实现
+### effect的基本实现（runner、scheduler、stop）以及依赖收集与触发依赖
+### readonly的基本实现
+### ref的基本实现
+### proxyRefs的基本实现，实现ref的访问代理
+### compute计算属性的基本实现
+### watch 监听属性的基本实现
 ## runtime-core 运行时核心-初始化
+### component组件的基本初始化流程
+### 普通dom的Element元素基本初始化流程
+### 组件代理对象的基本实现
+### shapeFlags的基本实现，使用二进制来做判断标志
+### 实现组件的事件注册、props
+### 实现组件的emit功能
+### 实现组件slot插槽
+### 实现Fragment 片段与Text文本类型节点
+### 实现getCurrentInstance
+### 实现组件的provide-inject
+### 实现自定义渲染器custom renderer
 ## runtime-core 运行时核心-更新
+### element更新基本流程
+### 更新 element的 props
+### 更新 element 的 children 基本场景
+### 更新 element 的 children 的新旧数组场景 - 双端快速diff算法
+### 最大递增子序列算法
+### vue2的diff算法基本原理
+### 组件类型的更新
 ### nextTick原理
 场景：当用户短时间内多次触发响应式更新逻辑，比如循环改变一个响应式对象，视图更新。  
 在这个场景中，视图更新逻辑会被多次触发，而这可以优化为等待循环结束，再触发更新逻辑。  
