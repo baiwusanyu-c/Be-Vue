@@ -39,3 +39,4 @@
 ## compiler-core 
 ### 主要流程
 template -》parse(str){ `词法分析 -》语法分析` } =》 模板AST -》 Transformer -》 JavaScript Ast -》代码生成 （generate JSAST）-》渲染函数
+### 有限状态机基本理解
