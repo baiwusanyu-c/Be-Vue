@@ -39,4 +39,6 @@
 ## compiler-core 
 ### 主要流程
 template -》parse(str){ `词法分析 -》语法分析` } =》 模板AST -》 Transformer -》 JavaScript Ast -》代码生成 （generate JSAST）-》渲染函数
-### 有限状态机基本理解
+### 基于`parse`有限状态机基本理解
+### Transformer 基本流程原理
+`Transformer` 被设计为只控制主流程，具体的转换实现，由传入的转换方法实现，这是一种可拔插的插件设计模式，能够使得 `Transformer` 足够解耦灵活，实现不同环境下的转换
