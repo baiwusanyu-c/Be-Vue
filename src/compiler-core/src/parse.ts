@@ -13,7 +13,8 @@ function createParserContext(content: string) {
 // 生成ast root
 function createRoot(parseChildren: any) {
     return {
-        children:parseChildren
+        children:parseChildren,
+        type: nodeTypes.ROOT
     }
 }
 
