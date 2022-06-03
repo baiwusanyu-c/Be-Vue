@@ -42,3 +42,5 @@ template -》parse(str){ `词法分析 -》语法分析` } =》 模板AST -》 T
 ### 基于`parse`有限状态机基本理解
 ### Transformer 基本流程原理
 `Transformer` 被设计为只控制主流程，具体的转换实现，由传入的转换方法实现，这是一种可拔插的插件设计模式，能够使得 `Transformer` 足够解耦灵活，实现不同环境下的转换
+### generate 基本流程原理
+`generate` 的本质，其实就是根据`transform`处理过的`ast`进行解析，生成对应的`JavaScript`代码字符串
