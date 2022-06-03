@@ -4,6 +4,7 @@ const enum TagType {
     start,
     end
 }
+// 生成ast 上下文对象
 function createParserContext(content: string) {
     return {
         source:content
@@ -38,9 +39,11 @@ function parseInterpolation(context: any) {
         }
     }
 }
+// 消费字符串
 function advanceBy(context:any,index:any) {
     context.source = context.source.slice(index)
 }
+
 
 function startsWithEndTagOpen(source: any, tag: any) {
     return source.startsWith('</') && tag.toLowerCase() === source.slice(2,tag.length + 2).toLowerCase()
@@ -79,6 +82,7 @@ function parseText(context: any) {
     let s = context.source
     let endIndex = s.length
     let endToken = ['<','{{']
+    // 找到 source中  <','{{' 的位置 并进一步解析出文本
     for (let i = 0;i < endToken.length;i++){
         const index = s.indexOf(endToken[i])
         if(index !== -1 && index < endIndex){
@@ -98,7 +102,7 @@ function parseTextData(context: any,length:number) {
     return content
 }
 
-// 解析 children
+// 解析 children，基于有限状态机模式
 function parseChildren(context: any,ancestors:any) {
     const nodes = []
     // 循环遍历children 字符串
@@ -122,6 +126,7 @@ function parseChildren(context: any,ancestors:any) {
 
     return nodes
 }
+// 是否标签闭合
 function isEnd(context:any,ancestors:any) {
  let s = context.source
  if(s.startsWith(`</`)){
