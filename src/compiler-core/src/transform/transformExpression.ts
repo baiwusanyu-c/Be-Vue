@@ -1,9 +1,8 @@
 import {nodeTypes} from "../ast";
 
 export function transformExpression(node:any){
-    if (node.type === nodeTypes.INTERPOLATION){
-        let contextNode = processExpression(node.content)
-        node.content = contextNode
+    if (node.type === nodeTypes.ELEMENT){
+        node.content = processExpression(node.content)
     }
 }
 function processExpression(node:any){

@@ -1,4 +1,4 @@
-import {helperMapName, TO_DISPLAY_STRING} from "./transform/runtimeHelpers";
+import {CREATE_ELEMENT_VNODE, helperMapName, TO_DISPLAY_STRING} from "./runtimeHelpers";
 import {nodeTypes} from "./ast";
 
 
@@ -18,17 +18,13 @@ export function codegen(ast: any) {
         code:context.code
     }
 }
-
+// 生成 文本类型
 function genText(node:any,context:any) {
     const {push} = context
     push(node.content)
 }
 
-function proccessContent(node: any, context: any) {
-    const rawContent = node.content
-    genNode(rawContent,context)
-}
-
+// 生成 差值 {{}}
 function genInterpolation(node:any,context:any) {
     const {push,helper} = context
     push(`${helper(helperMapName[TO_DISPLAY_STRING])}`)
@@ -36,10 +32,18 @@ function genInterpolation(node:any,context:any) {
     genNode(node.content, context)
     push(`)`)
 }
-
+// 生成 简单表达式 _ctx.foo
 function genSimpleExpression(node: any, context: any) {
     const {push} = context
     push(`${node.content}`)
+}
+
+function genElement(node: any, context: any) {
+    const {push,helper} = context
+    push(`${helper(helperMapName[CREATE_ELEMENT_VNODE])}`)
+    push(`(`)
+    push(`'${node.tag}'`)
+    push(`)`)
 }
 
 function genNode(node:any,context:any){
@@ -53,11 +57,15 @@ function genNode(node:any,context:any){
         case nodeTypes.SIMPLE_EXPRESSION:
             genSimpleExpression(node, context);
             break;
+        case nodeTypes.ELEMENT:
+            genElement(node, context);
+            break;
         default:
             break;
     }
    
 }
+// 生成上下文对象
 function createCodegenContext(ast:any){
     const context =  {
         code:'',
@@ -68,6 +76,7 @@ function createCodegenContext(ast:any){
     }
     return context
 }
+// 生成导入语句
 function genFunctionPreamble(node:any,context:any) {
     const { push } = context
     const bindging = 'vue'

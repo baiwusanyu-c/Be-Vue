@@ -1,5 +1,5 @@
 import {nodeTypes} from "./ast";
-import {TO_DISPLAY_STRING} from "./transform/runtimeHelpers";
+import {TO_DISPLAY_STRING} from "./runtimeHelpers";
 
 function createRootCodegen(root:any) {
     root.codegenNode = root.children[0]
@@ -25,7 +25,7 @@ export function traverseNode(root:any,context:any){
     const nodeTransforms = context.nodeTransforms
     if(nodeTransforms){
         for (let i = 0;i < nodeTransforms.length;i++){
-            nodeTransforms[i](root)
+            nodeTransforms[i](root,context)
         }
     }
     switch (root.type) {
