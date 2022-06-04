@@ -420,10 +420,9 @@ export function createRenderer(option: any) {
         instance.update = effect(() => {
             // 调用render函数，拿到子树vnode，这个值可能是组件也可能是元素或其他，
             // 但是他一定是上一轮的子树
-            const subTree = instance.render.call(instance.proxy)
             // 初始化逻辑
             if (!instance.isMounted) {
-                const subTree = (instance.subTree = instance.render.call(instance.proxy))
+                const subTree = (instance.subTree = instance.render.call(instance.proxy,instance.proxy))
 
                 // 再次 patch，处理子树
                 patch(null, subTree, container, instance, anchor)
@@ -438,7 +437,7 @@ export function createRenderer(option: any) {
                     next.el = vnode.el
                     updateComponentPreRender(instance,next)
                 }
-                const subTree = instance.render.call(instance.proxy)
+                const subTree = instance.render.call(instance.proxy,instance.proxy)
                 // 更新逻辑
                 const prevSubTree = instance.subTree
                 instance.subTree = subTree

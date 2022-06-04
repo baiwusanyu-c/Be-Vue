@@ -3,7 +3,7 @@ import {nodeTypes} from "./ast";
 import {isString} from "../../shared";
 
 
-export function codegen(ast: any) {
+export function generate(ast: any) {
     const context = createCodegenContext(ast)
     const {push} = context
     genFunctionPreamble(ast,context);

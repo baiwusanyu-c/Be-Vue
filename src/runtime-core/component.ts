@@ -6,7 +6,7 @@ import {emit} from "./componentEmit";
 import {initSlots} from "./componentSlots";
 import {proxyRefs} from "../reactivity/ref";
 
-
+let compiler: any;
 export function createComponentInstance(vnode:any,parent:any){
     const instance =  {
         vnode,
@@ -81,12 +81,25 @@ export function handleSetupResult(instance:any,setupResult:any){
 }
 // 最后处理渲染函数方法，自此组件setup相关初始化流程结束
 export function finishComponentSetup(instance:any){
+    // 组件原始对象
     const component = instance.type
-    // 如果组件 instance 上用户render
-    // render 优先级 setup的返回render，组件内option的render，template
+    // render 优先级 : setup的返回render，组件内option的render，template
+
+    // 如果组件 instance上没有render（setup返回渲染函数）
     if (!instance.render) {
+        // 如果 compile 有值 并且当然组件没有 render 函数（组件内option的render），
+        // 那么就需要把 template 编译成 render 函数
+        if (compiler && !component.render) {
+            if (component.template) {
+                // 这里就是 runtime 模块和 compile 模块结合点
+                const template = component.template;
+                component.render = compiler(template);
+            }
+        }
+
         instance.render = component.render;
     }
+
 }
 let currentInstance:any = null
 export function getCurrentInstance() {
@@ -94,4 +107,8 @@ export function getCurrentInstance() {
 }
 export function setCurrentInstance(instance:any) {
     currentInstance = instance
+}
+
+export function registryRuntimeCompiler(_compiler:any){
+    compiler  = _compiler
 }

@@ -1,15 +1,15 @@
 
 import {baseParse} from '../src/parse'
-import {codegen} from '../src/codegen'
+import {generate} from '../src/codegen'
 import {transform} from "../src/transform";
 import {transformExpression} from "../src/transform/transformExpression";
 import {transformElement} from "../src/transform/transformElement";
 import {transformText} from "../src/transform/transformText";
-describe('codegen',()=>{
+describe('generate',()=>{
     test('string',()=>{
         const ast = baseParse('czh')
         transform(ast)
-        const node = codegen(ast)
+        const node = generate(ast)
         // 快照测试
         expect(node).toMatchSnapshot()
     })
@@ -18,7 +18,7 @@ describe('codegen',()=>{
         transform(ast,{
             nodeTransforms:[transformExpression]
         })
-        const node = codegen(ast)
+        const node = generate(ast)
         // 快照测试
         expect(node).toMatchSnapshot()
     })
@@ -27,7 +27,7 @@ describe('codegen',()=>{
         transform(ast,{
             nodeTransforms:[transformElement]
         })
-        const node = codegen(ast)
+        const node = generate(ast)
         // 快照测试
         expect(node).toMatchSnapshot()
     })
@@ -38,7 +38,7 @@ describe('codegen',()=>{
         transform(ast,{
             nodeTransforms:[transformExpression,transformElement,transformText]
         })
-        const node = codegen(ast)
+        const node = generate(ast)
         // 快照测试
         expect(node).toMatchSnapshot()
     })

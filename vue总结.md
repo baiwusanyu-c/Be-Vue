@@ -44,3 +44,13 @@ template -》parse(str){ `词法分析 -》语法分析` } =》 模板AST -》 T
 `Transformer` 被设计为只控制主流程，具体的转换实现，由传入的转换方法实现，这是一种可拔插的插件设计模式，能够使得 `Transformer` 足够解耦灵活，实现不同环境下的转换
 ### generate 基本流程原理
 `generate` 的本质，其实就是根据`transform`处理过的`ast`进行解析，生成对应的`JavaScript`代码字符串
+
+### compiler 编译模块如何在 runtime 运行时模块中使用
+`runtime` 运行时模块 导出了一个注册编译函数`registryRuntimeCompiler`,
+在`vue`的入口文件 `index` 中调用 `registryRuntimeCompiler` 并传入一个方法 `compileToFunction`
+通过注册编译函数 `registryRuntimeCompiler`,`compileToFunction` 将在 被存储在运行时全局变量 
+`compiler`上,`compiler`则会在 `finishComponentSetup` 中被调用,最后获得 `render` 方法挂载在组件实例
+`instance.render`上。
+在`compileToFunction` 内部将传递进来的 `template` 传递给编译模块 的 `baseCompile` 方法最终会得到 `code`，
+在使用 `new Function('vue',code)(runtimeDom) `得到 `render` 函数。
+其中 `baseCompile` 函数由 编译模块 `index` 导出，其内部分别调用 `baseParse`、`transform`、`generate`.

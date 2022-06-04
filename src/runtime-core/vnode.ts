@@ -2,6 +2,9 @@ import {isArray, isObject, isString} from "../shared/index";
 import {shapeFlags} from "../shared/ShapeFlags";
 export const TEXT = Symbol('TEXT')
 export const FRAGMENT = Symbol('FRAGMENT')
+export {
+    createVNode as createElementVNode
+}
 export function createVNode(type: any, props?: any, children?: any) {
     const vnode = {
         __is_VNode: true,
