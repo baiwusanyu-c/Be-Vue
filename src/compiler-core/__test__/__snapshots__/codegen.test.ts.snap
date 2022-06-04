@@ -1,5 +1,12 @@
 // Jest Snapshot v1, https://goo.gl/fbAQLP
 
+exports[`codegen compound 1`] = `
+Object {
+  "code": "const { toDisplayString: _toDisplayString, createElementVNode: _createElementVNode } = vue
+return function render( _ctx, _cache){return _createElementVNode('div', null, 'czh,' + _toDisplayString(_ctx.message))}",
+}
+`;
+
 exports[`codegen element 1`] = `
 Object {
   "code": "const { createElementVNode: _createElementVNode } = vue
@@ -17,6 +24,6 @@ return function render( _ctx, _cache){return _toDisplayString(_ctx.czh)}",
 exports[`codegen string 1`] = `
 Object {
   "code": "
-return function render( _ctx, _cache){return czh}",
+return function render( _ctx, _cache){return 'czh'}",
 }
 `;

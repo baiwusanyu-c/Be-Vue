@@ -3,5 +3,6 @@ export const enum nodeTypes {
     SIMPLE_EXPRESSION,
     ELEMENT,
     TEXT,
-    ROOT
+    ROOT,
+    COMPOUND_EXPRESSION,
 }

@@ -1,5 +1,6 @@
 import {CREATE_ELEMENT_VNODE, helperMapName, TO_DISPLAY_STRING} from "./runtimeHelpers";
 import {nodeTypes} from "./ast";
+import {isString} from "../../shared";
 
 
 export function codegen(ast: any) {
@@ -21,7 +22,7 @@ export function codegen(ast: any) {
 // 生成 文本类型
 function genText(node:any,context:any) {
     const {push} = context
-    push(node.content)
+    push(`'${node.content}'`)
 }
 
 // 生成 差值 {{}}
@@ -38,12 +39,49 @@ function genSimpleExpression(node: any, context: any) {
     push(`${node.content}`)
 }
 
+function genNullable(param: any[]) {
+    return param.map(val=>val ? val :'null')
+}
+
+function genNodeList(nodes: any[],context: any) {
+    const {push} = context
+    for (let i = 0; i < nodes.length; i++) {
+        const node = nodes[i]
+        if(isString(node)){
+            push(node)
+        }else{
+            genNode(node,context)
+        }
+        if(i < nodes.length - 1){
+            push(', ')
+        }
+
+    }
+}
+
 function genElement(node: any, context: any) {
     const {push,helper} = context
-    push(`${helper(helperMapName[CREATE_ELEMENT_VNODE])}`)
-    push(`(`)
-    push(`'${node.tag}'`)
+    const {tag,children,props} = node
+    push(`${helper(helperMapName[CREATE_ELEMENT_VNODE])}(`)
+    if(children){
+        // 循环生成处理子节点、tag、props
+        genNodeList(genNullable([tag,props,children]),context)
+    }
     push(`)`)
+}
+
+function genCompoundExpression(node: any, context: any) {
+    const {children} = node
+    const {push} = context
+    for (let i = 0; i < children.length; i++) {
+        const child = children[i]
+        if(isString(child)){
+            push(child)
+        }else{
+            genNode(child,context)
+        }
+
+    }
 }
 
 function genNode(node:any,context:any){
@@ -60,6 +98,9 @@ function genNode(node:any,context:any){
         case nodeTypes.ELEMENT:
             genElement(node, context);
             break;
+        case nodeTypes.COMPOUND_EXPRESSION:
+            genCompoundExpression(node, context);
+            break;    
         default:
             break;
     }
