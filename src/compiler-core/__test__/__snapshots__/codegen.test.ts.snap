@@ -10,7 +10,7 @@ return function render( _ctx, _cache){return _createElementVNode('div', null, 'c
 exports[`codegen element 1`] = `
 Object {
   "code": "const { createElementVNode: _createElementVNode } = vue
-return function render( _ctx, _cache){return _createElementVNode('div')}",
+return function render( _ctx, _cache){return _createElementVNode('div', null, null)}",
 }
 `;
 

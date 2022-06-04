@@ -63,10 +63,7 @@ function genElement(node: any, context: any) {
     const {push,helper} = context
     const {tag,children,props} = node
     push(`${helper(helperMapName[CREATE_ELEMENT_VNODE])}(`)
-    if(children){
-        // 循环生成处理子节点、tag、props
-        genNodeList(genNullable([tag,props,children]),context)
-    }
+    genNodeList(genNullable([tag,props,children]),context)
     push(`)`)
 }
 
