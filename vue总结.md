@@ -6,14 +6,15 @@
 这里需要明确的一点，`reactive` 只是做了数据的响应式化处理，使用 `proxy` 代理数据对象，并在 `get`、`set` 中完成了数据访问劫持和数据设置触发依赖。  
 `get` 和 `set` 是在有访问或设置操作进行是才会触发的，而 `vue` 的依赖收集实际上是要结合 `effect Api` 进行的。  
 例如:
+
 ```javascript
 let foo = reactive('foo')
 let consoleFoo = ()=>{
     console.log(foo)
 }
 effect(consoleFoo)
-
 ```
+
 在上述代码中，首先通过 `reactive` 对 `foo` 做了代理，而 `consoleFoo` 方法则访问了 `foo` 并打印，  
 然后在 `effect` 中传入的函数 `consoleFoo`，在这个过程中，`effect` 会运行一遍传入的函数 `consoleFoo`，  
 此时 `consoleFoo` 会被当做当前激活依赖存放在全局变量 `activeEffect` 上，而 `consoleFoo` 运行时访问了 `foo`，此时会触发 `get`，从而将当前的  
