@@ -140,9 +140,10 @@ __v_isRef = true // 是否是 ref 对象标识
 2.`computed` 返回一个通过 `.value`访问的对象，`.value`会触发 `computed` 接受方法 `fn`，并拿到返回值
 3.`computed` 具有惰性，多次访问 `.value`，在对应响应式对象值不改变的时候，不会多次触发接受的方法
 4.`computed` 在对应响应式对象值改变的时候，访问 `.value`,才触发接受的方法 `fn`
-其本质是内部创建了一个 `computedRefsImpl` 对象，把 `fn` 传递给构造函数
-在构造时，会把 `fn` 通过 `ReactiveEffect` 创建一个 `effect` 对象 放在 `this.effect` 中，并传入调度执行方法 `scheduler`
-在 `scheduler` 方法内部会修改 `computedRefsImpl` 对象 上的属性 `this._isDirty = true`，这样响应式值改变时不会触发更新
+其本质是对effect方法的封装，并利用了effect的lazy和scheduler配置，它内部创建了一个 `computedRefsImpl` 对象，把 `fn` 传递给构造函数
+在构造时，会把 `fn` 通过 `ReactiveEffect` 创建一个 `effect` 对象 放在 `this.effect` 中，并传入调度执行方法 `scheduler`。
+在 `scheduler` 方法内部会修改 `computedRefsImpl` 对象 上的属性 `this._isDirty = true`，这样响应式值改变时不会触发更新，而在 `.value` 访问时  
+又可以获取到新的值
 在 `get` 方法内部 `this._isDirty = true`，则重置 `this._isDirty = false`，并调用 `this.effect.run()` 触发更新，返回更新后的值
 <h4 style='color:red'>注意</h4>
 `computed` 返回的值，在 `.value` 访问时，由于没有进行 `set` 操作，故 `_isDirty = false`，不会在 `get` 中执行 `this._effect.run()`，
@@ -150,6 +151,18 @@ __v_isRef = true // 是否是 ref 对象标识
 从而实现惰性，
 此外这里是 直接调用 `ReactiveEffect` 而不是 `effect Api`，所以 `fn` 不会先执行一次
 ### watch 监听属性的基本实现
+watch 是用来监听响应式对象的。  
+watch 与 watchEffect 都是通过调用doWatch 来实现的  
+其实他们本质还是基于对effect方法的封装，并利用了effect的lazy和scheduler配置，  
+在doWatch方法中，会根据传递进来的第一个参数，也就是监听目标，根据它的类型去封装成一个getter函数 做不同的处理，例如是ref，则getter = (s)=>s.value，  
+是数组则getter内部会遍历这个数组，是reactive，则会递归的方位每一个键等等，这个封装的getter是为了能够拿到监听目标的最新值并返回，  
+所以会作为effect的第一个参数传递个effect，如此则实现了对监听目标的监听；然后设置了  
+effect 为lazy配置为true，防止effect会运行一次getter；而在watch内部还封装了一个方法 job，这个job方法会作为effect的scheduler方法传递给effect，  
+在watch 内维护着 nVal 和 oVal，在job内部会通过执行effectFn拿到新值，并调用用户传递的cb，将新值和旧值传递给用户（最后会更新旧值），这样就实现了监听目标改变，能够相应的运行  
+用户传递个cb，并拿到新旧值功能。  
+关于配置项 immediate，如果传了，watch内部会立即执行一次job。
+关于onInvalidate，watch内部有一个 onInvalidate 方法，会在job执行是作为第三个参数传递给用户，而用户传递给onInvalidate的cb会放在全局变量cleanup上，每次执行job  
+前都会判断执行一次cleanup，这个属性可以用力异步场景中监听目标多次改变引发的过期处理。  
 <hr>  
 
 ## runtime-core 运行时核心-初始化
