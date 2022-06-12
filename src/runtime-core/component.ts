@@ -42,12 +42,12 @@ export function setStatefulComponent(instance:any){
     // 获取原始组件对象的 setup 方法
     const setup = component.setup
     if(setup){
-        // ao yong setup qian  she zhi instance
+        // diao yong setup qian  she zhi instance
         setCurrentInstance(instance)
         const setupResult = setup(shallowReadonly(instance.props),{
             emit:instance.emit
         })
-        setCurrentInstance(instance)
+        setCurrentInstance(null);
         // 处理setup结果
         handleSetupResult(instance,setupResult)
     }

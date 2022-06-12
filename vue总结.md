@@ -158,33 +158,126 @@ watch 与 watchEffect 都是通过调用doWatch 来实现的
 是数组则getter内部会遍历这个数组，是reactive，则会递归的方位每一个键等等，这个封装的getter是为了能够拿到监听目标的最新值并返回，  
 所以会作为effect的第一个参数传递个effect，如此则实现了对监听目标的监听；然后设置了  
 effect 为lazy配置为true，防止effect会运行一次getter；而在watch内部还封装了一个方法 job，这个job方法会作为effect的scheduler方法传递给effect，  
-在watch 内维护着 nVal 和 oVal，在job内部会通过执行effectFn拿到新值，并调用用户传递的cb，将新值和旧值传递给用户（最后会更新旧值），这样就实现了监听目标改变，能够相应的运行  
+在watch 内维护着 nVal 和 oVal，在job内部会通过执行effect的返回值effectFn，拿到新值，并调用用户传递的cb，将新值和旧值传递给用户（最后会更新旧值），这样就实现了监听目标改变，能够相应的运行  
 用户传递个cb，并拿到新旧值功能。  
 关于配置项 immediate，如果传了，watch内部会立即执行一次job。
 关于onInvalidate，watch内部有一个 onInvalidate 方法，会在job执行是作为第三个参数传递给用户，而用户传递给onInvalidate的cb会放在全局变量cleanup上，每次执行job  
 前都会判断执行一次cleanup，这个属性可以用力异步场景中监听目标多次改变引发的过期处理。  
 <hr>  
 
+## vue3.2中 对依赖收集与清空的优化（pending）
 ## runtime-core 运行时核心-初始化
+createRenderer 方法创建渲染器对象，他是可拔插设计，接受支持传入参数包括创建节点方法、节点传入方法、节点移动方法、节点删除方法等，
+这种可拔插设计使得具体渲染流程与具体的元素操作逻辑解耦，实现不同平台渲染器的支持。
+createApp 方法实际上内部返回的就是 createRenderer方法创建渲染器对象的createApp属性的调用运行结果，这个属性的值是createAppApi方法的返回值，
+createAppApi实际上是一个闭包，他接受一个渲染参数render（这个参数是定义在createRenderer中的，上下文关系createAppApi调用时是在createRenderer的返回值中）
+createAppApi返回的函数中接受参数为rootComponent 即入口根组件，createAppApi返回的函数中的返回值则是包含mount方法的对象，这样我们就可以调用mount方法进行挂载了
+mount方法接受根节点，可以是dom选择器字符串，也可以是dom节点。
+mount 方法内部会根据 ，根据根组件 rootComponent ，创建vnode，并把rootContainer、vnode传递给render方法
+render方法，就开始了正式的初始化流程。
 ### component组件的基本初始化流程
+在render方法内部实际上会调用patch方法来处理，patch方法来会根据vnode的type以及patchFlag进行判断然后走不同的分支逻辑，
+例如Type是文本就会走processText，是Fragment就会走processFragment，
+组件则会走 
+processComponent -> n1为 undefined -> mountComponent （
+创建组件实例 createComponentInstance
+处理setup  setupComponent -> initProps -> initSlots -> setStatefulComponent->handleSetupResult->finishComponentSetup
+调用处理render具体渲染 setupRenderEffect
+）
+setStatefulComponent:创建组件代理使得render方法内能够通过this访问组件实例,如this.$el等、在setup调用前创建currentInstance、调用setup拿到setupResult
+handleSetupResult:根据setupResult结果做处理，setupResult是对象则挂载 instance.setupState上，这里用proxyRefs做了ref的解包
+是方法则作为渲染方法挂载 instance.render上。
+finishComponentSetup：处理render，渲染方法挂载 instance.render上。
+render来源 
+1.setup返回render，优先级最高，在handleSetupResult中先挂到instance.render上
+2.组件内option的render，优先级第二 在finishComponentSetup中挂到instance.render上
+2.template编译生成的render，优先级最低 在finishComponentSetup中，当有编译结果compiler && !组件内option的render && !instance.render
+compiler才挂到instance.render上
+setupRenderEffect：
+主要是逻辑调用组件实例上的渲染方法 instance.render 拿到子树虚拟节点，并递归的调用patch递归处理子节点，并把组件实例上instance.isMounted设置为true，
+下次组件就根据isMounted 走更新逻辑。
+这些逻辑是放在effect中调度执行的，这样就实现了视图个更新对比，effect的返回值会存储在instance.update上，当组件或元素更新时，在effect调度执行
+scheduler，把instance.update放入微任务队列中执行，实现视图更新patch。
+
 ### 普通dom的Element元素基本初始化流程
+在render方法内部实际上会调用patch方法来处理，patch方法来会根据vnode的type以及patchFlag进行判断然后走不同的分支逻辑，
+例如Type是文本就会走processText，是Fragment就会走processFragment，
+dom元素则会走
+processElement -> n1为 undefined -> mountElement（
+调用传入给 createRenderer 的 createElement 根据vnode创建真实节点 el；
+根据 children 和 patchFlag分别处理，children是文本就直接给el，是数组则遍历递归走patch；
+遍历vnode的props，调用传入给 createRenderer 的 patchProp 给el添加属性或添加事件；
+调用传入给 createRenderer 的 insert将el插入都真实节点容器中
+）
 ### 组件代理对象的基本实现
+在render函数运行时，能够通过this，访问到组件实例
+原理是在组件初始流程时，setStatefulComponent中创建了组件代理对象，并存储都instance.proxy上
+在setupRenderEffect时，调用instance.render 获取subTree时，通过call将instance.proxy作为render运行时
+的this实现。
+组件代理对象的handler实现就是根据访问的key做判断，返回组件实例上对应的值
+访问的key在instance.props中就从props取值返回，在instance.setupState中就取值返回
+访问的是 $el 就返回 instance.el，是$slots 就返回instance.slots，是$props 就返回instance.props
 ### shapeFlags的基本实现，使用二进制来做判断标志
+shapeFlags 是 vnode的类型标记
+通过位运算操作
+查找 使用 &
+修改使用 |
+& （都为 1 才得 1 ）
+| （都为 0 才得 0 ）
 ### 实现组件的事件注册、props
-### 实现组件的emit功能
+无论是组件还是element的属性、事件，对于事件和作用于元素的props（例如class）,都是作用于dom元素的，
+组件的事件和props 都会在setupComponent时，被存储到instance.props上，
+在mountElement时，会遍历instance.props并调用props处理方法，
+事件会被编译成以on开头的props，如果props被正则匹配到on开头，则会当做事件被添加到el上，
+否则则会作为el的属性被添加上去，另外，在更新时还会传入旧的props做对比，实现更新或删除。
+然而element的属性设置是根据具体情况来调用不同的API的 这是因为HTML Attribute 与 Dom Properties的表现不同导致的
+````
+<input disabled></input>
+<input :disabled = 'false'></input>
+````
+会分别被解析成 disabled:'' 和 disabled:false，调用setAttribute 会一直被禁用,因为 false 会被专户为 'false',
+使用 el.disabled 会被一直开启，因为 el.disabled = '' 等价 el.disabled = false，
+所以正确的设置这里还是做了很多边界条件的判断的。
+### 实现组件的emit功能，与setup内props
+在setStatefulComponent时，调用setup方法时，会把组件实例的props作为第一个参数，传递给setup,
+emit功能则是放在一个对象里，作为第二个参数传递给setup，这样用户就可以在setup中获取props以及emit方法
+emit方法具体实现其实是，将第一个参数，事件名进行驼峰表转化处理，使得其格式与props的事件格式统一，
+（props的事件会被转化为on开头），第一个参数处理后去props中取对应的事件，并把参数传递给它触发用户的事件运行。
 ### 实现组件slot插槽
-### 实现Fragment 片段与Text文本类型节点
+插槽节点的传入时
+在编译时会被解析成一个对象，对象的键就是插槽名，值是一个返回虚拟节点或虚拟节点list的方法，
+其中default键就是默认插槽
+在创建虚拟节点时，当节点的类型为组件且children是一个对象，则vnode的shapeFlag则会标记成插槽
+在setupComponent方法流程里，对slot做初始化，会判断vnode的children是否符合插槽条件，符合则将其挨个存储到
+组件实例的instance.slots上，这里有个小细节就是对返回值做了一层包装，使得插槽对象返回值都是数组
+而插槽节点在熏染时，则是通过编译成renderSlots方法实现，其内部根据插槽名，在instance.slots上获取都对应插槽的渲染方法
+并使用fragment进行包装渲染
+### 实现 Fragment 片段与Text文本类型节点
+Text纯文本在编译时会被编译成使用createTextVNode来创建vnode，
+此时patch时则走processText，processText则是拿到children（文本子节点），直接插入都容器container中
+Fragment 片段 在编译时，如果是组件类型却没有单一根节点，则会将Fragment作为类型来创建vnode，
+此时patch时则走processFragment，processFragment内部则是调用mountChildren，遍历children 挨个patch
 ### 实现getCurrentInstance
+原理是在组件初始流程时，setStatefulComponent中在调用setup方法之前，将组件实例缓存在一个全局变量中，用户
+在setup运行时，通过调用getCurrentInstance获取全局变量从而拿到组件实例instance。
 ### 实现组件的provide-inject
+provide 提供一个值使得后代组件能够访问
+inject 在后代组件中能够访问provide
+二者一句话概括就是用了getCurrentInstance获取组件实例，provide 值挂载实例上，在子组件中instance.parent再去取
 ### 实现自定义渲染器custom renderer
+实际上就是基于createRenderer的可拔插式的插件设计，实现了渲染的主流程与具体节点操作逻辑分离，用户可以传入自定义的
+节点操作逻辑实现自定义渲染器。例如将dom节点操作方法，移动、创建、删除等全部替换成canvas的操作方法，那么就会实现基于
+canvas的渲染器。
+### 对class的解析与处理
+class在编译时做了归一化处理，字符串不作处理，对象取值为true的键名拼接，二者混合数组同理
 ## runtime-core 运行时核心-更新
-### element更新基本流程
-### 更新 element的 props
-### 更新 element 的 children 基本场景
-### 更新 element 的 children 的新旧数组场景 - 双端快速diff算法
-### 最大递增子序列算法
-### vue2的diff算法基本原理
-### 组件类型的更新
+### element更新基本流程（pending）
+### 更新 element的 props（pending）
+### 更新 element 的 children 基本场景（pending）
+### 更新 element 的 children 的新旧数组场景 - 双端快速diff算法（pending）
+### 最大递增子序列算法（pending）
+### vue2的diff算法基本原理（pending）
+### 组件类型的更新（pending）
 ### nextTick原理
 场景：当用户短时间内多次触发响应式更新逻辑，比如循环改变一个响应式对象，视图更新。  
 在这个场景中，视图更新逻辑会被多次触发，而这可以优化为等待循环结束，再触发更新逻辑。  
@@ -194,7 +287,8 @@ effect 为lazy配置为true，防止effect会运行一次getter；而在watch内
 `queue`，然后再`Promise`中循环队列 `queue`，执行 `runner` 更新视图。  
 这种优化使得视图更新逻辑变为了异步，但是在某些场景下用户需要拿到更新后的一些组件实例或者做一些其他操作，此时就诞生了 `nextTick`
 ，它的基本原理其实就是把传入的回调函数放在微任务或者宏任务中执行，但是它内部做了`Api`的使用判断，判断当前浏览器是否支持`Promise`然后降级调用 `Api`，比如不支持就调用 `setTimeout`，`messageChannel` 这种。
-## compiler-core 
+## vue3中 block的处理、patchFlag的优化（pending）
+## compiler-core （pending）
 ### 主要流程
 template -》parse(str){ `词法分析 -》语法分析` } =》 模板AST -》 Transformer -》 JavaScript Ast -》代码生成 （generate JSAST）-》渲染函数
 ### 基于`parse`有限状态机基本理解
@@ -212,3 +306,9 @@ template -》parse(str){ `词法分析 -》语法分析` } =》 模板AST -》 T
 在`compileToFunction` 内部将传递进来的 `template` 传递给编译模块 的 `baseCompile` 方法最终会得到 `code`，
 在使用 `new Function('vue',code)(runtimeDom) `得到 `render` 函数。
 其中 `baseCompile` 函数由 编译模块 `index` 导出，其内部分别调用 `baseParse`、`transform`、`generate`.
+## vue3.x~3.2.x 对编译的优化 （pending）
+## 内置组件实现原理（pending）
+### Keep-alive（pending）
+### teleport（pending）
+
+### 提交的 pr（pending）
