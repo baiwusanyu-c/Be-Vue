@@ -207,7 +207,9 @@ processElement -> n1为 undefined -> mountElement（
 调用传入给 createRenderer 的 createElement 根据vnode创建真实节点 el；
 根据 children 和 patchFlag分别处理，children是文本就直接给el，是数组则遍历递归走patch；
 遍历vnode的props，调用传入给 createRenderer 的 patchProp 给el添加属性或添加事件；
+(beforeMounted)
 调用传入给 createRenderer 的 insert将el插入都真实节点容器中
+(onMounted)
 ）
 ### 组件代理对象的基本实现
 在render函数运行时，能够通过this，访问到组件实例
@@ -271,8 +273,29 @@ canvas的渲染器。
 ### 对class的解析与处理
 class在编译时做了归一化处理，字符串不作处理，对象取值为true的键名拼接，二者混合数组同理
 ## runtime-core 运行时核心-更新
-### element更新基本流程（pending）
-### 更新 element的 props（pending）
+### element更新基本流程
+element更新基本流程原理是基于响应式系统的，在初始化流程中 最后会走到setupRenderEffect方法中，
+在这个方法中，会把组件的初始化与更新逻辑作为依赖，传递给effect，并将effect返回的runner又重新挂在组件实例上，
+结合effect的调度执行scheduler，当响应式数据变动时，会触发scheduler执行，scheduler执行时，会将挂在组件实例上的effect的runner
+加入到微任务队列中，进行执行，这样就实现了数据变动，相应组件更新的功能。
+而组件的初始胡逻辑与更新逻辑，具体是通过组件实例上的变量isMounted来区分的，初始化时，为false，初始化结束后为true，
+再次更新触发时，就会走更新逻辑。
+对于组件或元素节点，更新逻辑最主要的是再次调用render 获取新的subTree，并将旧的subTree，与新的subTree 作为参数去patch。
+在patch时再根据新的vnode类型，做不同的分支逻辑，元素类型则需要diff，这里特别说明的是组件类型的更新，实际上组件类型vnode的更新场景
+是从父组件角度来看待的，因此组件类型vnode更新更关注与传递给组件的props的变化，因此在updateComponent方法中，主要是对新旧vnode的props变化进行
+遍历比较，如果确定需要更新，则会将新的vnode存储在组件实例上instance.next，并调用组件实例instance上的update方法（也就是runner）来更新组件，
+这里更新的组件是指更新组件的内容，例如subTree，而非组件vnode；在组件实例instance上的update方法中，
+会判断是否存在next，存在就会在对subTree进行patch前，更新组件实例上的vnode、props等，使得组件的subTree在patch时是最新的props。
+
+### 更新 element的 props
+element的 props 的更新在updateElement流程中的patchProps中进行，对元素属性、事件的增删改依旧是
+使用的createRenderer方法传递进来的patchProp方法，它会根据传递进来的key、props值，来判断事件、属性的增删改
+patchProps中，先对新的props做了遍历，在每次遍历中根据新key，到新旧props中取值
+1.若旧的取不到，则表明要添加
+2.若新旧不同，则表明要更新
+然后对旧的props做遍历，在每次遍历中根据旧key，到新旧props中取值，新的取不到，则说明哟删除
+### 更新组件的 props
+参见 `element更新基本流程`
 ### 更新 element 的 children 基本场景（pending）
 ### 更新 element 的 children 的新旧数组场景 - 双端快速diff算法（pending）
 ### 最大递增子序列算法（pending）

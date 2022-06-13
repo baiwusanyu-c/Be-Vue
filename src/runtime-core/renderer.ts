@@ -437,6 +437,8 @@ export function createRenderer(option: any) {
                     next.el = vnode.el
                     updateComponentPreRender(instance,next)
                 }
+
+
                 const subTree = instance.render.call(instance.proxy,instance.proxy)
                 // 更新逻辑
                 const prevSubTree = instance.subTree
