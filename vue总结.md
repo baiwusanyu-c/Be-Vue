@@ -352,6 +352,14 @@ template -》parse(str){ `词法分析 -》语法分析` } =》 模板AST -》 T
 ## 内置组件实现原理
 ### Keep-alive（TODO）
 ### teleport
+在编译技术后创建的teleport的vnode，在patch过程中会被识别出来，并用内置组件teleport的实例对象TeleportImpl上的process方法来完成
+teleport组件的逻辑实现。
+process内部对普通元素的主要逻辑实现
+初始化时，n1不存在，则获取n2的props.to，根据to，获取到对应的dom，并遍历n2的children，挨个将其进行patch，最终将dom插入到目标容器下。  
+在更新时，如果n1与n2的props.to不同，则获取n2的props.to，根据to，获取到对应的dom，并遍历n2的children，挨个调用moveTeleport方法最终将dom移动到目标容器下。
+如果n1与n2的props.disabled 不同，则获取n2的props.disabled，根据disabled，获取到对应的dom，并遍历n2的children，挨个调用moveTeleport方法最终将dom移动到目标容器下。
+如果如果n1于n2的props.to一样，直接patchChildren 或 patchBlockChildren
 
+并且TeleportImpl还提供了对外的Api给框架操作，比如remove方法，在unmount时能够卸载对应的teleport
 
 ### 提交的 pr（TODO）
