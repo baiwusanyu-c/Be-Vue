@@ -165,7 +165,7 @@ effect 为lazy配置为true，防止effect会运行一次getter；而在watch内
 前都会判断执行一次cleanup，这个属性可以用力异步场景中监听目标多次改变引发的过期处理。  
 <hr>  
 
-## vue3.2中 对依赖收集与清空的优化（pending）
+## vue3.2中 对依赖收集与清空的优化（TODO）
 ## runtime-core 运行时核心-初始化
 createRenderer 方法创建渲染器对象，他是可拔插设计，接受支持传入参数包括创建节点方法、节点传入方法、节点移动方法、节点删除方法等，
 这种可拔插设计使得具体渲染流程与具体的元素操作逻辑解耦，实现不同平台渲染器的支持。
@@ -280,12 +280,7 @@ element更新基本流程原理是基于响应式系统的，在初始化流程�
 加入到微任务队列中，进行执行，这样就实现了数据变动，相应组件更新的功能。
 而组件的初始胡逻辑与更新逻辑，具体是通过组件实例上的变量isMounted来区分的，初始化时，为false，初始化结束后为true，
 再次更新触发时，就会走更新逻辑。
-对于组件或元素节点，更新逻辑最主要的是再次调用render 获取新的subTree，并将旧的subTree，与新的subTree 作为参数去patch。
-在patch时再根据新的vnode类型，做不同的分支逻辑，元素类型则需要diff，这里特别说明的是组件类型的更新，实际上组件类型vnode的更新场景
-是从父组件角度来看待的，因此组件类型vnode更新更关注与传递给组件的props的变化，因此在updateComponent方法中，主要是对新旧vnode的props变化进行
-遍历比较，如果确定需要更新，则会将新的vnode存储在组件实例上instance.next，并调用组件实例instance上的update方法（也就是runner）来更新组件，
-这里更新的组件是指更新组件的内容，例如subTree，而非组件vnode；在组件实例instance上的update方法中，
-会判断是否存在next，存在就会在对subTree进行patch前，更新组件实例上的vnode、props等，使得组件的subTree在patch时是最新的props。
+
 
 ### 更新 element的 props
 element的 props 的更新在updateElement流程中的patchProps中进行，对元素属性、事件的增删改依旧是
@@ -293,14 +288,38 @@ element的 props 的更新在updateElement流程中的patchProps中进行，对�
 patchProps中，先对新的props做了遍历，在每次遍历中根据新key，到新旧props中取值
 1.若旧的取不到，则表明要添加
 2.若新旧不同，则表明要更新
-然后对旧的props做遍历，在每次遍历中根据旧key，到新旧props中取值，新的取不到，则说明哟删除
+然后对旧的props做遍历，在每次遍历中根据旧key，到新旧props中取值，新的取不到，则说明哟删除`
+### 更新 element 的 children 基本场景（TODO）
+元素的更新 processElement -> patchElement -> patchChildren ->patchProps  
+patchChildren中会先获取新旧虚拟节点的子节点，并根据虚拟节点的shapeFlag进行判断，做一些基本处理  
+
+新children 为文本，
+老的是空 -> 替换为新文本  
+老的是文本 -> 替换为新文本  
+老的为数组，则变量老数组挨个删除元素 -> 替换为新文本  
+
+如果新的是 空
+老的是空 -> 不操作  
+老的是文本 -> 删除文本  
+老的为数组，则变量老数组挨个删除元素  
+
+如果新的是 数组
+老的是空  -> 插入新数组  
+老的是文本 -> 删除文本  -> mountChildren插入新数组  
+老的为数组 -> diff 算法
+
+### 更新 element 的 children 的新旧数组场景 - 双端快速diff算法（TODO）
+### 最大递增子序列算法（TODO）
+### vue2的diff算法基本原理（TODO）
+### 组件类型的更新
+对于组件或元素节点，更新逻辑最主要的是再次调用render 获取新的subTree，并将旧的subTree，与新的subTree 作为参数去patch。
+在patch时再根据新的vnode类型，做不同的分支逻辑，元素类型则需要diff，这里特别说明的是组件类型的更新，实际上组件类型vnode的更新场景
+是从父组件角度来看待的，因此组件类型vnode更新更关注与传递给组件的props的变化，因此在updateComponent方法中，主要是对新旧vnode的props变化进行
+遍历比较，如果确定需要更新，则会将新的vnode存储在组件实例上instance.next，并调用组件实例instance上的update方法（也就是runner）来更新组件，
+这里更新的组件是指更新组件的内容，例如subTree，而非组件vnode；在组件实例instance上的update方法中，
+会判断是否存在next，存在就会在对subTree进行patch前，更新组件实例上的vnode、props等，使得组件的subTree在patch时是最新的props。
 ### 更新组件的 props
-参见 `element更新基本流程`
-### 更新 element 的 children 基本场景（pending）
-### 更新 element 的 children 的新旧数组场景 - 双端快速diff算法（pending）
-### 最大递增子序列算法（pending）
-### vue2的diff算法基本原理（pending）
-### 组件类型的更新（pending）
+参见 `组件类型的更新`
 ### nextTick原理
 场景：当用户短时间内多次触发响应式更新逻辑，比如循环改变一个响应式对象，视图更新。  
 在这个场景中，视图更新逻辑会被多次触发，而这可以优化为等待循环结束，再触发更新逻辑。  
@@ -310,8 +329,8 @@ patchProps中，先对新的props做了遍历，在每次遍历中根据新key�
 `queue`，然后再`Promise`中循环队列 `queue`，执行 `runner` 更新视图。  
 这种优化使得视图更新逻辑变为了异步，但是在某些场景下用户需要拿到更新后的一些组件实例或者做一些其他操作，此时就诞生了 `nextTick`
 ，它的基本原理其实就是把传入的回调函数放在微任务或者宏任务中执行，但是它内部做了`Api`的使用判断，判断当前浏览器是否支持`Promise`然后降级调用 `Api`，比如不支持就调用 `setTimeout`，`messageChannel` 这种。
-## vue3中 block的处理、patchFlag的优化（pending）
-## compiler-core （pending）
+## vue3中 block的处理、patchFlag的优化（TODO）
+## compiler-core （TODO）
 ### 主要流程
 template -》parse(str){ `词法分析 -》语法分析` } =》 模板AST -》 Transformer -》 JavaScript Ast -》代码生成 （generate JSAST）-》渲染函数
 ### 基于`parse`有限状态机基本理解
@@ -329,9 +348,10 @@ template -》parse(str){ `词法分析 -》语法分析` } =》 模板AST -》 T
 在`compileToFunction` 内部将传递进来的 `template` 传递给编译模块 的 `baseCompile` 方法最终会得到 `code`，
 在使用 `new Function('vue',code)(runtimeDom) `得到 `render` 函数。
 其中 `baseCompile` 函数由 编译模块 `index` 导出，其内部分别调用 `baseParse`、`transform`、`generate`.
-## vue3.x~3.2.x 对编译的优化 （pending）
-## 内置组件实现原理（pending）
-### Keep-alive（pending）
-### teleport（pending）
+## vue3.x~3.2.x 对编译的优化 （TODO）
+## 内置组件实现原理
+### Keep-alive（TODO）
+### teleport
 
-### 提交的 pr（pending）
+
+### 提交的 pr（TODO）
