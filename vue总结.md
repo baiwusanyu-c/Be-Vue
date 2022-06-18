@@ -387,11 +387,46 @@ newIndexToOldIndexMap的是为了建立起新序列每个元素在旧序列中�
 ### 最大递增子序列算法
 最大递增子序列算法核心思路
 从给定序列第一个元素开始遍历，依次计算元素的递增序列长度，递增序列长度最大的，就是最大递增子序列
-而给定序列的某一个元素，它的子序列长度，为 【1（该元素本身）】 + 【在该元素之前的其他元素中最靠近该元素，且小于该元素的元素x的子序列长度x.len】
+而给定序列的某一个元素，它的子序列长度，为 【1（该元素本身）】 + 【在该元素之前的其他元素中，小于该元素的，且元素x的子序列长度x.len最大】
 exp:
 原始输入序列： 1    7              2               5               6               4               3  
 递增序列长度： 1   1+1(1.len)=2    1+1(1.len)=2    1+2(2.len)=3    1+3(5.len)=4    1+2(2.len)=3    1+2(2.len)=3
 可得 最大递增子序列元素为 6 ，最大递增子序列长度为4 结果为 【1 2 5 6】
+````
+// [4,10,4,3,8,9]
+ //  1,2,1, 1,2,3
+var lengthOfLIS = function(nums) {
+    if(nums.length === 1){
+        return 1
+    }
+    if([...(new Set(nums))].length === 1){
+        return 1
+    }
+    let dep = []
+    dep.length = nums.length
+    dep.fill(1)
+    let resNum = 1
+    let resIndex = 0
+    for(let i = 0;i < nums.length ; i++){
+        if(i === 0){
+            dep[i] = 1
+            continue
+        }else{
+            for(let j = 0; j < i; j++){
+                if(nums[j] < nums[i]){
+                    dep[i] = Math.max(1 + dep[j],dep[i])
+                    resNum = Math.max(dep[i],resNum)
+                    if(resNum === dep[i]){
+                        resIndex = i
+                    }
+                }
+            }
+        }
+    }
+    console.log(nums[resIndex],resIndex)
+    return resNum
+};
+````
 
 ### vue2的diff算法基本原理（TODO）
 ### 组件类型的更新
