@@ -254,6 +254,7 @@ export function createRenderer(option: any) {
                 }
 
             }
+
             // 根据 newIndexToOldIndexMap 计算最长递增子序列(返回值是新中间节点序列中最长递增子序列的索引组成的数组)
             //      2 3 4
             // a,b,(c,d,e),f,g
