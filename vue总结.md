@@ -289,7 +289,7 @@ patchProps中，先对新的props做了遍历，在每次遍历中根据新key�
 1.若旧的取不到，则表明要添加
 2.若新旧不同，则表明要更新
 然后对旧的props做遍历，在每次遍历中根据旧key，到新旧props中取值，新的取不到，则说明哟删除`
-### 更新 element 的 children 基本场景（TODO）
+### 更新 element 的 children 基本场景
 元素的更新 processElement -> patchElement -> patchChildren ->patchProps  
 patchChildren中会先获取新旧虚拟节点的子节点，并根据虚拟节点的shapeFlag进行判断，做一些基本处理  
 
