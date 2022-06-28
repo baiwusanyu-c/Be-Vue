@@ -1,0 +1,46 @@
+为什么需要 cleanup 呢？如果遇到这种场景：
+<template>
+  <div v-if="state.showMsg">
+    {{ state.msg }}
+  </div>
+  <div v-else>
+    {{ Math.random()}}
+  </div>
+  <button @click="toggle">Toggle Msg</button>
+  <button @click="switchView">Switch View</button>
+</template>
+<script>
+  import { reactive } from 'vue'
+
+  export default {
+    setup() {
+      const state = reactive({
+        msg: 'Hello World',
+        showMsg: true
+      })
+
+      function toggle() {
+        state.msg = state.msg === 'Hello World' ? 'Hello Vue' : 'Hello World'
+      }
+
+      function switchView() {
+        state.showMsg = !state.showMsg
+      }
+
+      return {
+        toggle,
+        switchView,
+        state
+      }
+    }
+  }
+</script>
+
+结合代码可以知道，这个组件的视图会根据 showMsg 变量的控制显示 msg 或者一个随机数，当我们点击 Switch View 的按钮时，就会修改这个变量值。
+假设没有 cleanup，在第一次渲染模板的时候，activeEffect 是组件的副作用渲染函数，因为模板 render 的时候访问了 state.msg，所以会执行依赖收集，把副作用渲染函数作为 state.msg 的依赖，我们把它称作 render effect。然后我们点击 Switch View 按钮，视图切换为显示随机数，此时我们再点击 Toggle Msg 按钮，由于修改了 state.msg 就会派发通知，找到了 render effect 并执行，就又触发了组件的重新渲染。
+但这个行为实际上并不符合预期，因为当我们点击 Switch View 按钮，视图切换为显示随机数的时候，也会触发组件的重新渲染，但这个时候视图并没有渲染 state.msg，所以对它的改动并不应该影响组件的重新渲染。
+因此在组件的 render effect 执行之前，如果通过 cleanup 清理依赖，我们就可以删除之前 state.msg 收集的 render effect 依赖。这样当我们修改 state.msg 时，由于已经没有依赖了就不会触发组件的重新渲染，符合预期。
+
+换句话说，render方法中即使访问了多个响应式变量，但实际对应的是一个reactiveEffect对象，这个对象会被收集到各个响应式变量的依赖map中，
+但是如果某个响应式变量导致render方法中访问的响应式变量（数目）发生了改变（例如上述的v-if），此时如果不清空，会导致修改响应式变量（
+这个响应式变量由于v-if，不在render中了，但是之前被收集过）时，触发依赖

@@ -2,9 +2,13 @@
 ## reactive 响应式系统
 `vue3` 的响应式系统是基于订阅发布者模式，通过 `proxy` 实现对数据的响应式化，    
 而依赖副作用的收集就是根据响应式化的数据来进行的。  
+因为 `Proxy` 本质上是对某个对象的劫持，这样它不仅仅可以监听对象某个属性值的变化，还可以监听对象属性的新增和删除；
+而 `Object.defineProperty` 是给对象的某个已存在的属性添加对应的 `getter` 和 `setter`，所以它只能监听这个属性值的变化，而不能去监听对象属性的新增和删除。
+
 <h4 style='color:red'>注意</h4>
 这里需要明确的一点，`reactive` 只是做了数据的响应式化处理，使用 `proxy` 代理数据对象，并在 `get`、`set` 中完成了数据访问劫持和数据设置触发依赖。  
-`get` 和 `set` 是在有访问或设置操作进行是才会触发的，而 `vue` 的依赖收集实际上是要结合 `effect Api` 进行的。  
+`get` 和 `set` 是在有访问或设置操作进行是才会触发的，
+而 `vue` 的依赖收集（track）实际上是要结合 `effect Api` 进行的。  
 例如:
 
 ```javascript
@@ -18,7 +22,7 @@ effect(consoleFoo)
 在上述代码中，首先通过 `reactive` 对 `foo` 做了代理，而 `consoleFoo` 方法则访问了 `foo` 并打印，  
 然后在 `effect` 中传入的函数 `consoleFoo`，在这个过程中，`effect` 会运行一遍传入的函数 `consoleFoo`，  
 此时 `consoleFoo` 会被当做当前激活依赖存放在全局变量 `activeEffect` 上，而 `consoleFoo` 运行时访问了 `foo`，此时会触发 `get`，从而将当前的  
-`activeEffect`（也就是 `consoleFoo`），当做 `foo` 的依赖进行收集。  
+`activeEffect`（也就是 `consoleFoo`），当做 `foo` 的依赖进行收集。
 ### reactive 的基本实现
 `reactive API` 的实现其实就是创建并返回了一个 `proxy` 对象，    
 将原始数据对象 `raw` 和 `mutableHandlers` 传递给 `proxy` 构造函数，    
@@ -46,7 +50,7 @@ effect(consoleFoo)
 ```javascript
 _fn // 依赖函数
 deps = [] // 依赖函数集合
-active = true // 是否激活
+active = true // 是否激活,stop方法执行后用于判断
 onStop = ()=>{} // stop 钩子方法
 ```
 首先依赖收集有全局变量 `activeEffect`（当前激活的 `effec` t对象，内含副作用依赖），`shouldTrack`（是否需要收集）  
@@ -59,7 +63,33 @@ onStop = ()=>{} // stop 钩子方法
 执行结果 `res = this._fn()；`  
 `shouldTrack` 设置为 `false`
 最后返回 `res`
-  
+注意，实际上 `activeEffect` 指向当前 `ReactiveEffect` 对象这一步是通过effectStack 栈 维护的
+````
+const counter = reactive({
+num: 0,
+num2: 0
+})
+function logCount() {
+effect(logCount2)
+console.log('num:', counter.num)
+}
+function count() {
+counter.num++
+}
+function logCount2() {
+console.log('num2:', counter.num2)
+}
+effect(logCount)
+count()
+````
+上述代码中，如果单纯的把`activeEffect` 指向当前 `ReactiveEffect` 对象，`effect(logCount2)`   
+执行完后 activeEffect 指向的是 `logCount2`,而后续的 `console.log('num:', counter.num)` ,  
+会导致错误的将 `logCount2`作为 `num`的依赖收集，  
+此时我们`count()`,触发的依赖却是 `logCount2`，在 `fn` 执行完毕后出栈，再把 `activeEffect` 指向 `effectStack` 最后一个元素，  
+也就是外层 `effect` 函数对应的 `reactiveEffect`  
+
+
+
 当外部调用 `stop` 方法时，`stop` 方法内部会先判断  `active === true`,  
 然后判断是否传入了 `onStop` 钩子函数，有就运行 `onStop`。然后清除依赖，并把 `active = false`,  
 <h4 style='color:red'>注意</h4>
@@ -70,6 +100,8 @@ onStop = ()=>{} // stop 钩子方法
 正常流程 `shouldTrack = true =》this._fn() =》 track 收集 =》shouldTrack = false`，
 注意此流程走完后依赖收集完毕是 `false` 的， 而在调用 `stop` 方法后因为 `this.active` 变为 `false`，`run` 方法运行他会直接返回 `this._fn()` 的结果，不会在设置
 `shouldTrack = true`，于是在 `track` 时会被直接返回捕收剂。
+#### 为什么effect.run 每次运行都要清空effect对象上的依赖？
+见 `why should cleanupEffect in ReactiveEffect`
 #### stop方法Api
 `stop`方法`Api`，传入一个 `runner`，当 `trigger` 后 ，不执行副作用函数，需要手动调用 `runner`，
 其内部就是通过传入的 `runner` 访问都 `effect` 对象，并调用 `effect` 对象上的 `stop` 方法
@@ -86,7 +118,7 @@ onStop = ()=>{} // stop 钩子方法
 `triggerEffects` 循环遍历 `dep` 拿到每个 `effect` 对象 调用 `run` 或 `scheduler`
 #### scheduler 的调度执行
 `scheduler` 的调度执行，通常会在一些调度优化、计算属性 `compute` 中会使用到，其表现出来的效果是
-1. `effect` 支持传入一个包含名为 `scheduler` 函数的 `options`
+1.`effect` 支持传入一个包含名为 `scheduler` 函数的 `options`
 2.`effect` 首次执行时，传入给 `effect` 的`fn`（即依赖）执行
 3.当对应响应式对象 `set` 并 `trigger` 时，不执行 `fn`（即依赖） 而执行 `options` 的 `scheduler` 函数
 4.当执行 `runner` 时（`effect` 的返回） 能够执行 `fn`（即依赖）
@@ -166,6 +198,12 @@ effect 为lazy配置为true，防止effect会运行一次getter；而在watch内
 <hr>  
 
 ## vue3.2中 对依赖收集与清空的优化（TODO）
+在vue3.2以前，effect每次run都会对对应的effect对象的deps中依赖进行清除，
+这个过程涉及大量的set，delete等操作，而在实际使用场景中依赖关系是很少改变的，
+因此这里存在一定的优化空间。
+
+
+
 ## runtime-core 运行时核心-初始化
 createRenderer 方法创建渲染器对象，他是可拔插设计，接受支持传入参数包括创建节点方法、节点传入方法、节点移动方法、节点删除方法等，
 这种可拔插设计使得具体渲染流程与具体的元素操作逻辑解耦，实现不同平台渲染器的支持。
