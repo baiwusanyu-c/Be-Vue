@@ -64,7 +64,7 @@ onStop = ()=>{} // stop 钩子方法
 `shouldTrack` 设置为 `false`
 最后返回 `res`
 注意，实际上 `activeEffect` 指向当前 `ReactiveEffect` 对象这一步是通过effectStack 栈 维护的
-````
+````javascript
 const counter = reactive({
 num: 0,
 num2: 0
@@ -194,14 +194,29 @@ effect 为lazy配置为true，防止effect会运行一次getter；而在watch内
 用户传递个cb，并拿到新旧值功能。  
 关于配置项 immediate，如果传了，watch内部会立即执行一次job。
 关于onInvalidate，watch内部有一个 onInvalidate 方法，会在job执行是作为第三个参数传递给用户，而用户传递给onInvalidate的cb会放在全局变量cleanup上，每次执行job  
-前都会判断执行一次cleanup，这个属性可以用力异步场景中监听目标多次改变引发的过期处理。  
+前都会判断执行一次cleanup，这个属性可以用于异步场景中监听目标多次改变引发的过期处理。  
 <hr>  
 
 ## vue3.2中 对依赖收集与清空的优化（TODO）
 在vue3.2以前，effect每次run都会对对应的effect对象的deps中依赖进行清除，
 这个过程涉及大量的set，delete等操作，而在实际使用场景中依赖关系是很少改变的，
 因此这里存在一定的优化空间。
-
+1.首先设置了一个`effect`最大递归层数30,与当前`effect`递归层数 `effectTrackDepth`
+当 `effectTrackDepth` 达到30,每次run才对对应的对应的effect对象的deps中依赖进行清除。
+并在track时做全依赖收集。
+2.当递归层数小于30时，在依赖收集的数据结构中，dep原先是一个set，
+现在增加了一个w属性（dep依赖最先被搜集层数），
+用于标识依赖是否被收集过，一个n属性用于标识依赖最新出现的层数，
+在trigger触发effect的run时，会将deps上的w属性设置为当前层数，
+而再次 track 时，有一个shouldTrack变量初始为false，它为true时才真正把activeEffect放入deps
+然后判断deps的n属性（初始为0,初始比进标记逻辑），若 `n` 层数与当前层数 `trackOpBit`
+位运算为0,则用 `trackOpBit` 更新n属性，这样在嵌套场景中，若某个依赖在多个层级出现，则能够更新n属性，
+若在同层出现，则表示已经在同层收集过，不在进行收集，更新n属性后，会根基w属性与当前层数 `trackOpBit`
+来判断是否需要收集。
+n与w属性的设计使得在某些嵌套场景中，依赖重复收集的问题得到优化，结合最大递归数，使得减少了依赖清除操作，使得
+性能得到提升。
+而最后effect的run方法还有一个finaly，在其中调用了`finalizeDepMarkers`方法，对曾经标记收集过的依赖，
+而本次副作用没有进行标记跟踪的依赖进行删除。
 
 
 ## runtime-core 运行时核心-初始化
