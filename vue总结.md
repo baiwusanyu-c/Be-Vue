@@ -540,7 +540,26 @@ n ：1 3
 ## compiler-core （TODO）   
 ### 主要流程   
 template -》parse(str){ `词法分析 -》语法分析` } =》 模板AST -》 Transformer -》 JavaScript Ast -》代码生成 （generate JSAST）-》渲染函数   
-### 基于`parse`有限状态机基本理解   
+vue的编译模块如上所示，主要是由sfc输入文件内容字符串，然后通过parse对字符串做词法分析和语法分析，将文件内容字符串抽象成模板AST，  
+在通过transform模块对模板AST做转化，比如一些优化block、hoist都在这一阶段进行，生成js AST，  
+这个js AST则用于描述js代码，比如模板中有一个div，那么js AST中就要描述需要调用creatVNode 来创建div的虚拟节点，  
+然后通过generate模块将 js AST解析生成对应的javaScript字符串，用于描述sfc文件。并在运行时被调用  
+### 基于有限状态机的`parse`基本理解    
+以模板解析为例 `parse` 时逐个字符对模板的内容字符串进行解析，对字符串进行切割，获取到dom的标签开始、标签名称、标签上属性、文本等信息，  
+其实他是基于优先状态机的原理去实现解析的，它对字符串进行遍历，通过各种状态迁移（标签开始、标签名称、标签文本、标签结束状态），  
+字符内容判断等操作，将dom字符串解析成一个个token，并根据token构造出AST
+````
+<p>foo</p>
+=> token:[
+    {type:'tagStart',name:'p'},
+    {type:'text',content:'foo'},
+    {type:'tagEnd',name:'p'},
+]
+````
+在html中，标签是一个树，通过扫描token列表，配合一个elementStack即可创建一个AST
+扫描element时，当遇到一个开始标签，就在elementStack压入一个对应element对应类型的AST节点，
+并在AST中创建一个对应element对应类型的AST节点，往后扫描中，所有的token都作为elementStack栈顶元素的字节点进行创建
+直到遇到结束标签token，把elementStack出栈，这样就实现了根据token，创建对应父子关系的AST。
 ### Transformer 基本流程原理   
 `Transformer` 被设计为只控制主流程，具体的转换实现，由传入的转换方法实现，这是一种可拔插的插件设计模式，能够使得 `Transformer` 足够解耦灵活，实现不同环境下的转换   
 ### generate 基本流程原理   
@@ -598,7 +617,7 @@ process内部对普通元素的主要逻辑实现
 正确的解决方式：当`children`大于1时，遍历 `children`，找到非注释节点的第一个子节点，赋值给`child`变量，并标记找到`isFound`，   
 往后循环如果还有非注释节点，则根据 `isFound` 直接报出警告，并 `break`;   
 ### 杂项
-虚拟dom的性能到底如何？为什么不使用innerHTML？  
+虚拟 `dom` 的性能到底如何？为什么不使用 `innerHTML`？  
 要理解这一点首先要清楚我们对dom的操作代码，如果是命令式的框架，例如jq或原生js，假设我需要给div设置文本并添加点击事件  
 一般要三部，找到dom，填充文字，添加事件，这个过程通常需要三行代码实现，而在vue这在声明式框架中，则只需要一行模板代码即可，  
 声明式框架能够有自己的语法，它可以有更高的自由度，它使得开发者更加的关注结果，而非过程，因为过程框架已经帮我们处理了。  
