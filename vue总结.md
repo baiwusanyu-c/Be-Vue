@@ -537,7 +537,7 @@ n ：1 3
 这种优化使得视图更新逻辑变为了异步，但是在某些场景下用户需要拿到更新后的一些组件实例或者做一些其他操作，此时就诞生了 `nextTick`   
 ，它的基本原理其实就是把传入的回调函数放在微任务或者宏任务中执行，但是它内部做了`Api`的使用判断，判断当前浏览器是否支持`Promise`然后降级调用 `Api`，比如不支持就调用 `setTimeout`，`messageChannel` 这种。   
 ## vue3中 block的处理、patchFlag的优化（TODO）   
-## compiler-core （TODO）   
+## compiler-core  
 ### 主要流程   
 template -》parse(str){ `词法分析 -》语法分析` } =》 模板AST -》 Transformer -》 JavaScript Ast -》代码生成 （generate JSAST）-》渲染函数   
 vue的编译模块如上所示，主要是由sfc输入文件内容字符串，然后通过parse对字符串做词法分析和语法分析，将文件内容字符串抽象成模板AST，  
