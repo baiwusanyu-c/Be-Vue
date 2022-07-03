@@ -102,6 +102,7 @@ count()
 `shouldTrack = true`，于是在 `track` 时会被直接返回捕收剂。   
 #### 为什么effect.run 每次运行都要清空effect对象上的依赖？   
 见 `why should cleanupEffect in ReactiveEffect`   
+
 #### stop方法Api   
 `stop`方法`Api`，传入一个 `runner`，当 `trigger` 后 ，不执行副作用函数，需要手动调用 `runner`，   
 其内部就是通过传入的 `runner` 访问都 `effect` 对象，并调用 `effect` 对象上的 `stop` 方法   
@@ -127,7 +128,7 @@ count()
 有 `scheduler` 有就执行否则就执行run来执行依赖函数 `fn`   
 <h4 style='color:red'>注意</h4>   
 `scheduler` 调度执行只是没有执行 `fn` 而是执行了 `scheduler`，但是响应式数据对象的值是改变了的   
-   
+———————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————— 
 ### readonly 的基本实现   
 与 `reactive` 相似，只是创建 `proxy` 时传入的 `Getter` 的 `isReadonly` 为 `true`   
 这使得在触发 `get` 做依赖收集时，不再执行 `track` ，   
@@ -536,7 +537,7 @@ n ：1 3
 `queue`，然后再`Promise`中循环队列 `queue`，执行 `runner` 更新视图。     
 这种优化使得视图更新逻辑变为了异步，但是在某些场景下用户需要拿到更新后的一些组件实例或者做一些其他操作，此时就诞生了 `nextTick`   
 ，它的基本原理其实就是把传入的回调函数放在微任务或者宏任务中执行，但是它内部做了`Api`的使用判断，判断当前浏览器是否支持`Promise`然后降级调用 `Api`，比如不支持就调用 `setTimeout`，`messageChannel` 这种。   
-## vue3中 block的处理、patchFlag的优化（TODO）   
+ 
 ## compiler-core  
 ### 主要流程   
 template -》parse(str){ `词法分析 -》语法分析` } =》 模板AST -》 Transformer -》 JavaScript Ast -》代码生成 （generate JSAST）-》渲染函数   
@@ -573,8 +574,36 @@ vue的编译模块如上所示，主要是由sfc输入文件内容字符串，�
 `instance.render`上。   
 在`compileToFunction` 内部将传递进来的 `template` 传递给编译模块 的 `baseCompile` 方法最终会得到 `code`，   
 在使用 `new Function('vue',code)(runtimeDom) `得到 `render` 函数。   
-其中 `baseCompile` 函数由 编译模块 `index` 导出，其内部分别调用 `baseParse`、`transform`、`generate`.   
-## vue3.x~3.2.x 对编译的优化 （TODO）   
+其中 `baseCompile` 函数由 编译模块 `index` 导出，其内部分别调用 `baseParse`、`transform`、`generate`.     
+## vue3中 block的处理、patchFlag的优化  
+在实际场景中，模板的结构大多数情况下是稳定的，所以在编译阶段能够分析出模板的很多信息用于优化;  
+vue3的block优化，实际上就是在编译阶段，分析出那些包含有动态信息的动态节点（例如字节点或孙子节点中包含有只指令、响应式变量等的节点），  
+调用对应的方法（openBlock、createElementBlock），并把节点信息、patchFlags等信息传递进去，创建block节点的过程。  
+通过block的创建，实际上思想就是将节点的动态信息传递给render渲染器，使得渲染器在运行时能够根据这些信息做优化运行。  
+一个block节点，它通常是模板中的根节点、带有节点指令等情况的节点。在一个block节点中，会有一个dynamicChildren属性，里面记录了该block节点  
+的后代节点中，属于动态节点的对应vnode、block节点，在渲染器运行时，更新逻辑就只会从dynamicChildren中进行更新，
+这样就减少了diff对比的节点数量，从而达到优化。
+### 如何收集后代block与动态节点
+此外优于createVNode是深度优先的，因次为了能够让根节点收集到后代的动态节点，  
+需要用一个栈来存储后代的动态节点（dynamicChildrenStack(currentDynamicChildren = [])）,  
+而在渲染器中，判断是否有dynamicChildren，有就在更新时遍历新旧dynamicChildren进行更新，而单个节点，  
+优于dynamicChildren的vnode存在patchFlag，所以可以准确的靶向更新。
+值得注意的是，若子代存在block，根节点收集的是子代block，但是子block后有动态节点，根节点不会收集
+因为他们已经存在与子代block中了。
+### 结构化指令带来的block不稳定
+在v-if中，收集的block是v-if下的节点，这就导致在v-if变化时，其自生后代节点没变，不会响应更新，
+因此需要将v-if/v-else等结构化指令也作为block
+在v-for中，会使用fragment 充当v-for的block，因为block的dynamicChildren是挂载根节点上的（相对于动态节点的根节点），
+因此需要fragment来包裹v-for,在fragment中，v-for依旧可能是不稳定的（fragment稳定的只有模板多个根节点和常量v-for）
+因此渲染器对不稳定的fragment还是使用的常规diff。
+## vue3的静态提升优化 、预字符串化
+在render函数内调用createElementBlock，createVNode时，只要更新逻辑触发，render函数运行，
+createElementBlock，createVNode会被再次调用，而如果一个节点，它所使用的变量是静态常量，非响应式的，那么它
+实际上不需要更新，所以可以把创建静态常量的vnode逻辑提升到render函数外面，把创建的vnode放在一个变量hoist上，
+render函数内部使用hoist，这样在更新时就可以避免重复调用方法创建vnode了。
+预字符串化，是静态提升的一种优化策略，当提升变量到底20个，这些变量对应的节点会直接被转化为字符串，
+通过innerHTML来创建，这里由于不涉及更新，用innerHTML来创建大量dom在性能上有优势，同时又减少了
+内存消耗、创建vnode开销。
 ## 内置组件实现原理   
 ### Keep-alive   
 vue3的keepalive组件使用了setup进行了重写，   
