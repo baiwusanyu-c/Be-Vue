@@ -556,7 +556,7 @@ process内部对普通元素的主要逻辑实现
 并且TeleportImpl还提供了对外的Api给框架操作，比如remove方法，在unmount时能够卸载对应的teleport
 
 ### 提交的 pr
-### bug 5675
+#### bug 5675
 问题描述：在动画组件`transition`里，如果添加注释，会爆出警告，不支持多个子节点
 问题定位于分析：在`BaseTransition.ts`中150行左右会获取组件的默认插槽`slot.default`赋值到变量`children`上，也就是子节点；
 代码中只对 `children` 的长度进行了判断，大于 `1` 就直接报出警告;
@@ -565,7 +565,7 @@ process内部对普通元素的主要逻辑实现
 会获取`child = children[0]`来进行处理;
 正确的解决方式：当`children`大于1时，遍历 `children`，找到非注释节点的第一个子节点，赋值给`child`变量，并标记找到`isFound`，
 往后循环如果还有非注释节点，则根据 `isFound` 直接报出警告，并 `break`;
-### bug 5675
+#### bug 5675
 问题描述：
 ````html
 <div :style="[
@@ -581,3 +581,4 @@ process内部对普通元素的主要逻辑实现
 我的解决方法：在transformExpression.ts加入检测来避免识别为静态提升，从而能够被正确编译
 我的问题：虽然解决了问题，但是这与静态提升的设计违背，会导致这些静态变量无法被提升。
 正确的解决方式：在transformElement.ts中，即element 转换节点检测这个问题，最终生成的静态提升变量会被 `normalizeStyle`处理成合法的格式，;
+### Vue2 与 Vue3 是如何对数组实现数据劫持的 ？ TODO
