@@ -676,3 +676,4 @@ process内部对普通元素的主要逻辑实现
 我的问题：虽然解决了问题，但是这与静态提升的设计违背，会导致这些静态变量无法被提升。   
 正确的解决方式：在transformElement.ts中，即element 转换节点检测这个问题，最终生成的静态提升变量会被 `normalizeStyle`处理成合法的格式，;   
 ### Vue2 与 Vue3 是如何对数组实现数据劫持的 ？ TODO
+### Vue3 watch 与 watchEffect 从功能和源码层面有什么区别 ？ TODO
