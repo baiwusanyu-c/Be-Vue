@@ -103,7 +103,7 @@ count()
 `shouldTrack = true`，于是在 `track` 时会被直接返回捕收剂。   
 #### 为什么effect.run 每次运行都要清空effect对象上的依赖？   
 见 `why should cleanupEffect in ReactiveEffect`   
-
+————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————
 #### stop方法Api   
 `stop`方法`Api`，传入一个 `runner`，当 `trigger` 后 ，不执行副作用函数，需要手动调用 `runner`，   
 其内部就是通过传入的 `runner` 访问都 `effect` 对象，并调用 `effect` 对象上的 `stop` 方法   
@@ -129,7 +129,7 @@ count()
 有 `scheduler` 有就执行否则就执行run来执行依赖函数 `fn`   
 <h4 style='color:red'>注意</h4>   
 `scheduler` 调度执行只是没有执行 `fn` 而是执行了 `scheduler`，但是响应式数据对象的值是改变了的   
-———————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————— 
+
 ### readonly 的基本实现   
 与 `reactive` 相似，只是创建 `proxy` 时传入的 `Getter` 的 `isReadonly` 为 `true`   
 这使得在触发 `get` 做依赖收集时，不再执行 `track` ，   
@@ -145,6 +145,7 @@ count()
 在 `get` 中 判断是否访问的 key 是 `__v_reactive`，命中 则返回 `!isReadonly`（`readonly(obj)` 时，传入给 `Getter` 为 `true`）   
 ### isProxy 的基本实现   
 接受一个 `target` 作为参数，返回 `isReactive(target) || isReadonly(target)`   
+————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————
 
 ### ref 的基本实现   
 ref 的出现与设计 是因为 reactive 是基于 proxy 实现 get 、set 来实现数据的访问劫持与设置派发更新，这是针对对象而言的，而对于基本数据对象类型   
@@ -158,7 +159,7 @@ dep = new Set() // 依赖集合
 __v_isRef = true // 是否是 ref 对象标识   
 ```   
 构造函数运行时，会先判断传入是否为对象，是则先用 `reactive` 处理一遍，然后把他们存在 `_value` 上，`_rawValue` 存储一开始的 `_value`，     
-`refImpl` 的 `get` 方法 实现数据劫持，直接调用 `trackEffects` 依赖收集     
+`refImpl` 的 `get` 方法 实现数据劫持，判断 `shouldTrack` 和 `activeEffect` 直接调用 `trackEffects` 依赖收集,并返回value
 `refImpl` 的 `set` 方法 实现数据设置派发更新，判断根据 `_rawValue` 数据是否变化，      
 判断新值是否为对象，是则先用 `reactive` 处理一遍，     
 然后把他们存在 `_value` 上，`_rawValue` 存储一开始的 `_value`，     
@@ -172,19 +173,21 @@ __v_isRef = true // 是否是 ref 对象标识
 在 `set` 中 判断访问的 `target` 是否是 `ref` 且 新值不是 `ref`，则直接 `targetVal.value = 新值`，否则直接 `targetVal = 新值`   
 ### compute计算属性的基本实现   
 1.`computed` 接受一个方法 `fn` ，该方法内部应该具有访问响应式对象的语句   
-2.`computed` 返回一个通过 `.value`访问的对象，`.value`会触发 `computed` 接受方法 `fn`，并拿到返回值   
-3.`computed` 具有惰性，多次访问 `.value`，在对应响应式对象值不改变的时候，不会多次触发接受的方法   
-4.`computed` 在对应响应式对象值改变的时候，访问 `.value`,才触发接受的方法 `fn`   
-其本质是对effect方法的封装，并利用了effect的lazy和scheduler配置，它内部创建了一个 `computedRefsImpl` 对象，把 `fn` 传递给构造函数   
-在构造时，会把 `fn` 通过 `ReactiveEffect` 创建一个 `effect` 对象 放在 `this.effect` 中，并传入调度执行方法 `scheduler`。   
-在 `scheduler` 方法内部会修改 `computedRefsImpl` 对象 上的属性 `this._isDirty = true`，这样响应式值改变时不会触发更新，而在 `.value` 访问时     
-又可以获取到新的值   
-在 `get` 方法内部 `this._isDirty = true`，则重置 `this._isDirty = false`，并调用 `this.effect.run()` 触发更新，返回更新后的值   
-<h4 style='color:red'>注意</h4>   
-`computed` 返回的值，在 `.value` 访问时，由于没有进行 `set` 操作，故 `_isDirty = false`，不会在 `get` 中执行 `this._effect.run()`，   
-而由于是调度执行，在给 `fn` 里的响应式对象赋值后，会触发 `scheduler`，`_isDirty = true`，在在 `.value` 访问时get中执行 `this._effect.run()`   
-从而实现惰性，   
-此外这里是 直接调用 `ReactiveEffect` 而不是 `effect Api`，所以 `fn` 不会先执行一次   
+2.`computed` 返回一个通过 `.value`访问的对象，`.value`会触发 `computed` 接受方法 `fn`，并拿到返回值     
+3.`computed` 具有惰性，多次访问 `.value`，在对应响应式对象值不改变的时候，不会多次触发接受的方法     
+4.`computed` 在对应响应式对象值改变的时候，访问 `.value`,才触发接受的方法 `fn`  
+其本质是对effect方法的封装，并利用了effect和scheduler配置，它内部创建了一个 `computedRefsImpl` 对象，把 `fn` 传递给构造函数     
+在构造时，会把 `fn` 通过 `ReactiveEffect` 创建一个 `effect` 对象 放在 `this.effect` 中，并传入调度执行方法 `scheduler`。     
+在 `scheduler` 方法内部会修改 `computedRefsImpl` 对象 上的属性 `this._isDirty = true`，这样响应式值改变时不会触发更新，而在 `.value` 访问时       
+又可以获取到新的值     
+在 `get` 方法内部 `this._isDirty = true`，则重置 `this._isDirty = false`，并调用 `this.effect.run()` 触发更新，返回更新后的值     
+<h4 style='color:red'>注意</h4>     
+`computed` 返回的值，在 `.value` 访问时，由于没有进行 `set` 操作，故 `_isDirty = false`，不会在 `get` 中执行 `this._effect.run()`，     
+而由于是调度执行，在给 `fn` 里的响应式对象赋值后，会触发 `scheduler`，`_isDirty = true`，在在 `.value` 访问时get中执行 `this._effect.run()`     
+从而实现惰性，     
+此外这里是 直接调用 `ReactiveEffect` 而不是 `effect Api`，所以 `fn` 不会先执行一次   ，  
+而且还会在 `computeRefImpl` 的构造函数和 `get` 方法上分别 `trigger` 和 `track` 一下计算属性对象，因为它也具有响应式，某些依赖方法会访问它。  
+`isDirty` 初始为 `true` ，这样在首次访问`.value`时就可以`run`，收集依赖  
 ### watch 监听属性的基本实现   
 watch 是用来监听响应式对象的。     
 watch 与 watchEffect 都是通过调用doWatch 来实现的     
@@ -198,6 +201,7 @@ effect 为lazy配置为true，防止effect会运行一次getter；而在watch内
 关于配置项 immediate，如果传了，watch内部会立即执行一次job。   
 关于onInvalidate，watch内部有一个 onInvalidate 方法，会在job执行是作为第三个参数传递给用户，而用户传递给onInvalidate的cb会放在全局变量cleanup上，每次执行job     
 前都会判断执行一次cleanup，这个属性可以用于异步场景中监听目标多次改变引发的过期处理。     
+————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————
 <hr>     
    
 ## vue3.2中 对依赖收集与清空的优化     
@@ -678,4 +682,3 @@ process内部对普通元素的主要逻辑实现
 我的问题：虽然解决了问题，但是这与静态提升的设计违背，会导致这些静态变量无法被提升。   
 正确的解决方式：在transformElement.ts中，即element 转换节点检测这个问题，最终生成的静态提升变量会被 `normalizeStyle`处理成合法的格式，;   
 ### Vue2 与 Vue3 是如何对数组实现数据劫持的 ？ TODO
-### Vue3 watch 与 watchEffect 从功能和源码层面有什么区别 ？ TODO
