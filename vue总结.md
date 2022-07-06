@@ -102,7 +102,7 @@ count()
 `shouldTrack = true`，于是在 `track` 时会被直接返回捕收剂。   
 #### 为什么effect.run 每次运行都要清空effect对象上的依赖？   
 见 `why should cleanupEffect in ReactiveEffect`   
-
+————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————
 #### stop方法Api   
 `stop`方法`Api`，传入一个 `runner`，当 `trigger` 后 ，不执行副作用函数，需要手动调用 `runner`，   
 其内部就是通过传入的 `runner` 访问都 `effect` 对象，并调用 `effect` 对象上的 `stop` 方法   
@@ -128,7 +128,7 @@ count()
 有 `scheduler` 有就执行否则就执行run来执行依赖函数 `fn`   
 <h4 style='color:red'>注意</h4>   
 `scheduler` 调度执行只是没有执行 `fn` 而是执行了 `scheduler`，但是响应式数据对象的值是改变了的   
-———————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————— 
+
 ### readonly 的基本实现   
 与 `reactive` 相似，只是创建 `proxy` 时传入的 `Getter` 的 `isReadonly` 为 `true`   
 这使得在触发 `get` 做依赖收集时，不再执行 `track` ，   
@@ -144,6 +144,8 @@ count()
 在 `get` 中 判断是否访问的 key 是 `__v_reactive`，命中 则返回 `!isReadonly`（`readonly(obj)` 时，传入给 `Getter` 为 `true`）   
 ### isProxy 的基本实现   
 接受一个 `target` 作为参数，返回 `isReactive(target) || isReadonly(target)`   
+————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————
+
 ### ref 的基本实现   
 ref 的出现与设计 是因为 reactive 是基于 proxy 实现 get 、set 来实现数据的访问劫持与设置派发更新，这是针对对象而言的，而对于基本数据对象类型   
 String、Boolean、Number等，则需要对包装一层对象，再通过 proxy 来实现数据的访问劫持与设置派发更新。   
@@ -156,7 +158,7 @@ dep = new Set() // 依赖集合
 __v_isRef = true // 是否是 ref 对象标识   
 ```   
 构造函数运行时，会先判断传入是否为对象，是则先用 `reactive` 处理一遍，然后把他们存在 `_value` 上，`_rawValue` 存储一开始的 `_value`，     
-`refImpl` 的 `get` 方法 实现数据劫持，直接调用 `trackEffects` 依赖收集     
+`refImpl` 的 `get` 方法 实现数据劫持，判断 `shouldTrack` 和 `activeEffect` 直接调用 `trackEffects` 依赖收集,并返回value
 `refImpl` 的 `set` 方法 实现数据设置派发更新，判断根据 `_rawValue` 数据是否变化，      
 判断新值是否为对象，是则先用 `reactive` 处理一遍，     
 然后把他们存在 `_value` 上，`_rawValue` 存储一开始的 `_value`，     
@@ -196,6 +198,7 @@ effect 为lazy配置为true，防止effect会运行一次getter；而在watch内
 关于配置项 immediate，如果传了，watch内部会立即执行一次job。   
 关于onInvalidate，watch内部有一个 onInvalidate 方法，会在job执行是作为第三个参数传递给用户，而用户传递给onInvalidate的cb会放在全局变量cleanup上，每次执行job     
 前都会判断执行一次cleanup，这个属性可以用于异步场景中监听目标多次改变引发的过期处理。     
+————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————
 <hr>     
    
 ## vue3.2中 对依赖收集与清空的优化     
