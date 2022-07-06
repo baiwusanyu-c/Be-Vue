@@ -172,19 +172,21 @@ __v_isRef = true // 是否是 ref 对象标识
 在 `set` 中 判断访问的 `target` 是否是 `ref` 且 新值不是 `ref`，则直接 `targetVal.value = 新值`，否则直接 `targetVal = 新值`   
 ### compute计算属性的基本实现   
 1.`computed` 接受一个方法 `fn` ，该方法内部应该具有访问响应式对象的语句   
-2.`computed` 返回一个通过 `.value`访问的对象，`.value`会触发 `computed` 接受方法 `fn`，并拿到返回值   
-3.`computed` 具有惰性，多次访问 `.value`，在对应响应式对象值不改变的时候，不会多次触发接受的方法   
-4.`computed` 在对应响应式对象值改变的时候，访问 `.value`,才触发接受的方法 `fn`
-其本质是对effect方法的封装，并利用了effect的lazy和scheduler配置，它内部创建了一个 `computedRefsImpl` 对象，把 `fn` 传递给构造函数   
-在构造时，会把 `fn` 通过 `ReactiveEffect` 创建一个 `effect` 对象 放在 `this.effect` 中，并传入调度执行方法 `scheduler`。   
-在 `scheduler` 方法内部会修改 `computedRefsImpl` 对象 上的属性 `this._isDirty = true`，这样响应式值改变时不会触发更新，而在 `.value` 访问时     
-又可以获取到新的值   
-在 `get` 方法内部 `this._isDirty = true`，则重置 `this._isDirty = false`，并调用 `this.effect.run()` 触发更新，返回更新后的值   
-<h4 style='color:red'>注意</h4>   
-`computed` 返回的值，在 `.value` 访问时，由于没有进行 `set` 操作，故 `_isDirty = false`，不会在 `get` 中执行 `this._effect.run()`，   
-而由于是调度执行，在给 `fn` 里的响应式对象赋值后，会触发 `scheduler`，`_isDirty = true`，在在 `.value` 访问时get中执行 `this._effect.run()`   
-从而实现惰性，   
-此外这里是 直接调用 `ReactiveEffect` 而不是 `effect Api`，所以 `fn` 不会先执行一次   
+2.`computed` 返回一个通过 `.value`访问的对象，`.value`会触发 `computed` 接受方法 `fn`，并拿到返回值     
+3.`computed` 具有惰性，多次访问 `.value`，在对应响应式对象值不改变的时候，不会多次触发接受的方法     
+4.`computed` 在对应响应式对象值改变的时候，访问 `.value`,才触发接受的方法 `fn`  
+其本质是对effect方法的封装，并利用了effect和scheduler配置，它内部创建了一个 `computedRefsImpl` 对象，把 `fn` 传递给构造函数     
+在构造时，会把 `fn` 通过 `ReactiveEffect` 创建一个 `effect` 对象 放在 `this.effect` 中，并传入调度执行方法 `scheduler`。     
+在 `scheduler` 方法内部会修改 `computedRefsImpl` 对象 上的属性 `this._isDirty = true`，这样响应式值改变时不会触发更新，而在 `.value` 访问时       
+又可以获取到新的值     
+在 `get` 方法内部 `this._isDirty = true`，则重置 `this._isDirty = false`，并调用 `this.effect.run()` 触发更新，返回更新后的值     
+<h4 style='color:red'>注意</h4>     
+`computed` 返回的值，在 `.value` 访问时，由于没有进行 `set` 操作，故 `_isDirty = false`，不会在 `get` 中执行 `this._effect.run()`，     
+而由于是调度执行，在给 `fn` 里的响应式对象赋值后，会触发 `scheduler`，`_isDirty = true`，在在 `.value` 访问时get中执行 `this._effect.run()`     
+从而实现惰性，     
+此外这里是 直接调用 `ReactiveEffect` 而不是 `effect Api`，所以 `fn` 不会先执行一次   ，  
+而且还会在 `computeRefImpl` 的构造函数和 `get` 方法上分别 `trigger` 和 `track` 一下计算属性对象，因为它也具有响应式，某些依赖方法会访问它。  
+`isDirty` 初始为 `true` ，这样在首次访问`.value`时就可以`run`，收集依赖  
 ### watch 监听属性的基本实现   
 watch 是用来监听响应式对象的。     
 watch 与 watchEffect 都是通过调用doWatch 来实现的     
@@ -679,4 +681,3 @@ process内部对普通元素的主要逻辑实现
 我的问题：虽然解决了问题，但是这与静态提升的设计违背，会导致这些静态变量无法被提升。   
 正确的解决方式：在transformElement.ts中，即element 转换节点检测这个问题，最终生成的静态提升变量会被 `normalizeStyle`处理成合法的格式，;   
 ### Vue2 与 Vue3 是如何对数组实现数据劫持的 ？ TODO
-### Vue3 watch 与 watchEffect 从功能和源码层面有什么区别 ？ TODO
