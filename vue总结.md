@@ -174,7 +174,7 @@ __v_isRef = true // 是否是 ref 对象标识
 1.`computed` 接受一个方法 `fn` ，该方法内部应该具有访问响应式对象的语句   
 2.`computed` 返回一个通过 `.value`访问的对象，`.value`会触发 `computed` 接受方法 `fn`，并拿到返回值   
 3.`computed` 具有惰性，多次访问 `.value`，在对应响应式对象值不改变的时候，不会多次触发接受的方法   
-4.`computed` 在对应响应式对象值改变的时候，访问 `.value`,才触发接受的方法 `fn`   
+4.`computed` 在对应响应式对象值改变的时候，访问 `.value`,才触发接受的方法 `fn`
 其本质是对effect方法的封装，并利用了effect的lazy和scheduler配置，它内部创建了一个 `computedRefsImpl` 对象，把 `fn` 传递给构造函数   
 在构造时，会把 `fn` 通过 `ReactiveEffect` 创建一个 `effect` 对象 放在 `this.effect` 中，并传入调度执行方法 `scheduler`。   
 在 `scheduler` 方法内部会修改 `computedRefsImpl` 对象 上的属性 `this._isDirty = true`，这样响应式值改变时不会触发更新，而在 `.value` 访问时     
