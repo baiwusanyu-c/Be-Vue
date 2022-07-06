@@ -189,18 +189,19 @@ __v_isRef = true // 是否是 ref 对象标识
 而且还会在 `computeRefImpl` 的构造函数和 `get` 方法上分别 `trigger` 和 `track` 一下计算属性对象，因为它也具有响应式，某些依赖方法会访问它。  
 `isDirty` 初始为 `true` ，这样在首次访问`.value`时就可以`run`，收集依赖  
 ### watch 监听属性的基本实现   
-watch 是用来监听响应式对象的。     
-watch 与 watchEffect 都是通过调用doWatch 来实现的     
-其实他们本质还是基于对effect方法的封装，并利用了effect的lazy和scheduler配置，     
-在doWatch方法中，会根据传递进来的第一个参数，也就是监听目标，根据它的类型去封装成一个getter函数 做不同的处理，例如是ref，则getter = (s)=>s.value，     
-是数组则getter内部会遍历这个数组，是reactive，则会递归的方位每一个键等等，这个封装的getter是为了能够拿到监听目标的最新值并返回，     
-所以会作为effect的第一个参数传递个effect，如此则实现了对监听目标的监听；然后设置了     
-effect 为lazy配置为true，防止effect会运行一次getter；而在watch内部还封装了一个方法 job，这个job方法会作为effect的scheduler方法传递给effect，     
-在watch 内维护着 nVal 和 oVal，在job内部会通过执行effect的返回值effectFn，拿到新值，并调用用户传递的cb，将新值和旧值传递给用户（最后会更新旧值），这样就实现了监听目标改变，能够相应的运行     
-用户传递个cb，并拿到新旧值功能。     
-关于配置项 immediate，如果传了，watch内部会立即执行一次job。   
-关于onInvalidate，watch内部有一个 onInvalidate 方法，会在job执行是作为第三个参数传递给用户，而用户传递给onInvalidate的cb会放在全局变量cleanup上，每次执行job     
-前都会判断执行一次cleanup，这个属性可以用于异步场景中监听目标多次改变引发的过期处理。     
+`watch` 是用来监听响应式对象的。     
+`watch` 与 `watchEffect` 都是通过调用 `doWatch` 来实现的     
+其实他们本质还是基于对 `effect` 方法的封装，并利用了 `effect` 的 `lazy` 和 `scheduler` 配置，     
+在 `doWatch` 方法中，会根据传递进来的第一个参数，也就是监听目标，根据它的类型去封装成一个 `getter` 函数 做不同的处理，例如是`ref`，则`getter = (s)=>s.value`，     
+是数组则 `getter` 内部会遍历这个数组，是`reactive`，则会递归的访问每一个键等等，这个封装的`getter`是为了能够拿到监听目标的最新值并返回，     
+所以会作为`effect`的第一个参数传递个`effect`，如此则实现了对监听目标的监听；然后设置了     
+`effect` 为`lazy`配置为true，防止`effect`会运行一次`getter`；而在`watch`内部还封装了一个方法 `job`，这个`job`方法会作为`effect`的`scheduler`方法传递给`effect`，     
+在 `watch` 内维护着 `nVal` 和 `oVal`，在`job`内部会通过执行`effect`的返回值`effectFn`(通过`runner`最终执行的是`getter`)，拿到新值，
+并调用用户传递的`cb`，将新值和旧值传递给用户（最后会更新旧值），这样就实现了监听目标改变，能够相应的运行     
+用户传递个`cb`，并拿到新旧值功能。     
+关于配置项 `immediate`，如果传了，`watch`内部会立即执行一次`job`。   
+关于 `onInvalidate`，`watch`内部有一个 `onInvalidate` 方法，会在`job`执行是作为第三个参数通过`cb`传递给用户，而用户传递给`onInvalidate`的`cb`会放在全局变量`cleanup`上，每次执行`job`     
+前都会判断执行一次`cleanup`，这个属性可以用于异步场景中监听目标多次改变引发的过期处理。     
 ————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————
 <hr>     
    
