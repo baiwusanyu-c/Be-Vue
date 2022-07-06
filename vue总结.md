@@ -52,6 +52,7 @@ _fn // 依赖函数
 deps = [] // 依赖函数集合   
 active = true // 是否激活,stop方法执行后用于判断   
 onStop = ()=>{} // stop 钩子方法   
+scheduler
 ```   
 首先依赖收集有全局变量 `activeEffect`（当前激活的 `effec` t对象，内含副作用依赖），`shouldTrack`（是否需要收集）     
 `ReactiveEffect` 对象还包含一个 `run` 方法 和 `stop` 方法,       
@@ -144,6 +145,7 @@ count()
 在 `get` 中 判断是否访问的 key 是 `__v_reactive`，命中 则返回 `!isReadonly`（`readonly(obj)` 时，传入给 `Getter` 为 `true`）   
 ### isProxy 的基本实现   
 接受一个 `target` 作为参数，返回 `isReactive(target) || isReadonly(target)`   
+
 ### ref 的基本实现   
 ref 的出现与设计 是因为 reactive 是基于 proxy 实现 get 、set 来实现数据的访问劫持与设置派发更新，这是针对对象而言的，而对于基本数据对象类型   
 String、Boolean、Number等，则需要对包装一层对象，再通过 proxy 来实现数据的访问劫持与设置派发更新。   
