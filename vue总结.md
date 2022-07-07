@@ -263,7 +263,7 @@ setupRenderEffect：
 下次组件就根据isMounted 走更新逻辑。   
 这些逻辑是放在effect中调度执行的，这样就实现了视图个更新对比，effect的返回值会存储在instance.update上，当组件或元素更新时，在effect调度执行   
 scheduler，把instance.update放入微任务队列中执行，实现视图更新patch。   
-   
+————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————
 ### 普通dom的Element元素基本初始化流程   
 在render方法内部实际上会调用patch方法来处理，patch方法来会根据vnode的type以及patchFlag进行判断然后走不同的分支逻辑，   
 例如Type是文本就会走processText，是Fragment就会走processFragment，   
@@ -343,7 +343,7 @@ element更新基本流程原理是基于响应式系统的，在初始化流程�
 在这个方法中，会把组件的初始化与更新逻辑作为依赖，传递给effect，并将effect返回的runner又重新挂在组件实例上，   
 结合effect的调度执行scheduler，当响应式数据变动时，会触发scheduler执行，scheduler执行时，会将挂在组件实例上的effect的runner   
 加入到微任务队列中，进行执行，这样就实现了数据变动，相应组件更新的功能。   
-而组件的初始胡逻辑与更新逻辑，具体是通过组件实例上的变量isMounted来区分的，初始化时，为false，初始化结束后为true，   
+而组件的初始化逻辑与更新逻辑，具体是通过组件实例上的变量isMounted来区分的，初始化时，为false，初始化结束后为true，   
 再次更新触发时，就会走更新逻辑。   
    
    
