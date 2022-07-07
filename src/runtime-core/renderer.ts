@@ -431,6 +431,7 @@ export function createRenderer(option: any) {
                 vnode.el = subTree.el
                 instance.isMounted = true
             } else {
+                debugger
                 // 更新el、props、vnode
                 // 初次触发更新时，在updateComponent中会判断props是否改变
                 // 再次调用instance.update进入这里
