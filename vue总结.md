@@ -227,7 +227,29 @@ n与w属性的设计使得在某些嵌套场景中，依赖重复收集的问题
 性能得到提升。     
 而最后effect的run方法还有一个finaly，在其中调用了`finalizeDepMarkers`方法，对曾经标记收集过的依赖，     
 而本次副作用没有进行标记跟踪的依赖进行删除。     
-   
+````
+const a = reactive({foo:1})
+effect(()=>{
+    console.log('1',a.foo)
+    // 嵌套
+    effect(()=>{
+        console.log('2',a.foo)
+    }) 
+})   
+````
+trackOpBit(1) = 1 << ++effectTrackDepth(0) =>  trackOpBit(2),effectTrackDepth(1)
+w(0) |= trackOpBit(2) => w(2)
+console.log('1',a.foo) -> track -> !newTracked(dep) -> !(n(0) & trackOpBit(2)) -> !newTracked(dep) = true
+n(0) |= trackOpBit(2) => n(2)
+shouldTrack = !wasTracked(dep) => !(w(2) & trackOpBit(2)) => false ????????
+// 这里没收集 a.foo
+
+trackOpBit(2) = 1 << ++effectTrackDepth(1) => trackOpBit(4) ,effectTrackDepth(2)
+w(0) |= trackOpBit(4) => w(4)
+console.log('2',a.foo) -> track -> !newTracked(dep) !(n(0) & trackOpBit(4)) -> !newTracked(dep) = true
+n(0) |= trackOpBit(4) => n(4)
+shouldTrack = !wasTracked(dep) => !(w(4) & trackOpBit(4)) => false ????????
+
 ![](img/2022-06-28_22-34-44.png)   
    
    
@@ -302,15 +324,23 @@ shapeFlags 是 vnode的类型标记
 <input disabled></input>   
 <input :disabled = 'false'></input>   
 ````   
-会分别被解析成 disabled:'' 和 disabled:false，调用setAttribute 会一直被禁用,因为 false 会被专户为 'false',   
+会分别被解析成 disabled:'' 和 disabled:false，调用setAttribute 会一直被禁用,因为 false 会被解析为 'false',   
 使用 el.disabled 会被一直开启，因为 el.disabled = '' 等价 el.disabled = false，   
-所以正确的设置这里还是做了很多边界条件的判断的。   
-————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————
+所以正确的设置这里还是做了很多边界条件的判断的。
 ### 实现组件的emit功能，与setup内props   
 在setStatefulComponent时，调用setup方法时，会把组件实例的props作为第一个参数，传递给setup,   
 emit功能则是放在一个对象里，作为第二个参数传递给setup，这样用户就可以在setup中获取props以及emit方法   
 emit方法具体实现其实是，将第一个参数，事件名进行驼峰表转化处理，使得其格式与props的事件格式统一，   
 （props的事件会被转化为on开头），第一个参数处理后去props中取对应的事件，并把参数传递给它触发用户的事件运行。   
+
+### 更新 element的 props
+element的 props 的更新在patchElement流程中的patchProps中进行，对元素属性、事件的增删改依旧是   
+使用的createRenderer方法传递进来的patchProp方法，它会根据传递进来的props值，来判断事件、属性的增删改   
+patchProps中，先对新的props做了遍历，在每次遍历中根据新key，到新旧props中取值   
+1.若旧的取不到，则表明要添加   
+2.若新旧不同，则表明要更新   
+然后对旧的props做遍历，在每次遍历中根据旧key，到新旧props中取值，新的取不到，则说明哟删除`
+————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————
 ### 实现组件slot插槽   
 插槽节点的传入时   
 在编译时会被解析成一个对象，对象的键就是插槽名，值是一个返回虚拟节点或虚拟节点list的方法，   
@@ -346,15 +376,7 @@ element更新基本流程原理是基于响应式系统的，在初始化流程�
 加入到微任务队列中，进行执行，这样就实现了数据变动，相应组件更新的功能。   
 而组件的初始化逻辑与更新逻辑，具体是通过组件实例上的变量isMounted来区分的，初始化时，为false，初始化结束后为true，   
 再次更新触发时，就会走更新逻辑。   
-   
-   
-### 更新 element的 props   
-element的 props 的更新在updateElement流程中的patchProps中进行，对元素属性、事件的增删改依旧是   
-使用的createRenderer方法传递进来的patchProp方法，它会根据传递进来的key、props值，来判断事件、属性的增删改   
-patchProps中，先对新的props做了遍历，在每次遍历中根据新key，到新旧props中取值   
-1.若旧的取不到，则表明要添加   
-2.若新旧不同，则表明要更新   
-然后对旧的props做遍历，在每次遍历中根据旧key，到新旧props中取值，新的取不到，则说明哟删除`   
+    
 ### 更新 element 的 children 基本场景   
 元素的更新 processElement -> patchElement -> patchChildren ->patchProps     
 patchChildren中会先获取新旧虚拟节点的子节点，并根据虚拟节点的shapeFlag进行判断，做一些基本处理     
@@ -449,7 +471,7 @@ newIndexToOldIndexMap的是为了建立起新序列每个元素在旧序列中�
 否则 判断 指针i是否等于,即是否等于指针s指向的递增子序列`seq[s]`，等于，则s--，进入下一轮循环，     
 否则，根据 i + newStart（就是算是头部的索引），和下一个节点索引 i + newStart + 1，获取锚点，调用insert实现移动节点     
 至此 双端快速diff算法结束     
-   
+————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————
 ### 最大递增子序列算法   
 最大递增子序列算法核心思路   
 从给定序列第一个元素开始遍历，依次计算元素的递增序列长度，递增序列长度最大的，就是最大递增子序列   
