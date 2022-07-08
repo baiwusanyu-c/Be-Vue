@@ -305,6 +305,7 @@ shapeFlags 是 vnode的类型标记
 会分别被解析成 disabled:'' 和 disabled:false，调用setAttribute 会一直被禁用,因为 false 会被专户为 'false',   
 使用 el.disabled 会被一直开启，因为 el.disabled = '' 等价 el.disabled = false，   
 所以正确的设置这里还是做了很多边界条件的判断的。   
+————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————
 ### 实现组件的emit功能，与setup内props   
 在setStatefulComponent时，调用setup方法时，会把组件实例的props作为第一个参数，传递给setup,   
 emit功能则是放在一个对象里，作为第二个参数传递给setup，这样用户就可以在setup中获取props以及emit方法   
