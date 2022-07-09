@@ -225,33 +225,62 @@ newTracked的缩写，采用二进制格式，每一位表示不同effect嵌套�
 来判断是否需要收集。     
 n与w属性的设计使得在某些嵌套场景中，依赖重复收集的问题得到优化，结合最大递归数，使得减少了依赖清除操作，使得     
 性能得到提升。     
-而最后effect的run方法还有一个finaly，在其中调用了`finalizeDepMarkers`方法，对曾经标记收集过的依赖，     
+而最后effect的run方法还有一个finally，在其中调用了`finalizeDepMarkers`方法，对曾经标记收集过的依赖，     
 而本次副作用没有进行标记跟踪的依赖进行删除。     
-````
-const a = reactive({foo:1})
+````javascript
+const a = ref(0)
 effect(()=>{
-    console.log('1',a.foo)
-    // 嵌套
-    effect(()=>{
-        console.log('2',a.foo)
-    }) 
-})   
+    console.log('1 ---- ',a)
+    console.log('2 ---- ',a)
+})
+a.value = 1
 ````
-trackOpBit(1) = 1 << ++effectTrackDepth(0) =>  trackOpBit(2),effectTrackDepth(1)
-w(0) |= trackOpBit(2) => w(2)
-console.log('1',a.foo) -> track -> !newTracked(dep) -> !(n(0) & trackOpBit(2)) -> !newTracked(dep) = true
-n(0) |= trackOpBit(2) => n(2)
-shouldTrack = !wasTracked(dep) => !(w(2) & trackOpBit(2)) => false ????????
-// 这里没收集 a.foo
+初始化,
+第一个console
+trackOpBit = 1 << ++effectTrackDepth   trackOpBit = 2
+effectTrackDepth < 30 进入initDepMarker设置w，由于deps初始化没有length = 0，跳过设置w，w依旧为0
+进入track，!newTracked => !(n & trackOpBit) => !(0 & 2) => !0 => true,是本层新收集的
+n |= trackOpBit => n = 2
+!wasTracked => !(w & trackOpBit) => !(0 & 2) => !0 => true,是没有收集过的，进行收集
+第二个console
+前面一样，只是进入 !newTracked 时 n为2，!(2 & 2) => !2 => false，不是本层新收集的，不收集
+finally
+重置 w = 0；n = 0；
+更新
+前面一样，只是进入进入initDepMarker设置w，由于deps再上一轮收集时有收集了，length = 1，
+w |= trackOpBit =》 0 |= 2 =》w = 2
+track时，前面都一样，只是!wasTracked => !(w & trackOpBit) => !(2 & 2) => !2 => false,
+这个依赖在上一轮effect运行时收集过了，不再收集
 
-trackOpBit(2) = 1 << ++effectTrackDepth(1) => trackOpBit(4) ,effectTrackDepth(2)
-w(0) |= trackOpBit(4) => w(4)
-console.log('2',a.foo) -> track -> !newTracked(dep) !(n(0) & trackOpBit(4)) -> !newTracked(dep) = true
-n(0) |= trackOpBit(4) => n(4)
-shouldTrack = !wasTracked(dep) => !(w(4) & trackOpBit(4)) => false ????????
-
-![](img/2022-06-28_22-34-44.png)   
-   
+````javascript
+const a = ref(0)
+const show = ref(true)
+effect(()=>{
+    if(show.value){
+        console.log(a.value)
+    }
+})
+show.value = false
+````
+初始化都一样
+更新
+此时deps里面[DepShow,DepA]
+更新先访问show，触发show的trigger，
+trackOpBit = 1 << ++effectTrackDepth   trackOpBit = 2
+initDepMarker设置w，由于deps再上一轮收集时有收集了，length = 2，
+他会遍历所有dep挨个设置w
+DepShow.w |= trackOpBit =》 0 |= 2 =》w = 2
+DepA.w |= trackOpBit =》 0 |= 2 =》w = 2
+进入track，!newTracked => !(n & trackOpBit) => !(0 & 2) => !0 => true,是本层新收集的
+n |= trackOpBit => n = 2
+!newTracked 时 n为2，!(2 & 2) => !2 => false，不是本层新收集的，不收集
+而由于if逻辑，不再访问a，所以a的trigger不触发，effect.run执行完
+此时 DepShow.w = 2，DepA.w = 2，DepA.n = 0 DepShow.n = 2
+finally
+遍历 deps，判断删除依赖
+wasTracked：DepA.w & trackOpBit => 2 & 2 =>true; DepShow.w & trackOpBit => 2 & 2 =>true;
+!newTracked:!(DepA.n & trackOpBit) => !(0 & 2) =>true; !(DepShow.n & trackOpBit) => !(2 & 2) =>false;
+DepA 会被删除
    
 ## runtime-core 运行时核心-初始化   
 createRenderer 方法创建渲染器对象，他是可拔插设计，接受支持传入参数包括创建节点方法、节点传入方法、节点移动方法、节点删除方法等，   
