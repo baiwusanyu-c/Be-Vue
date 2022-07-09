@@ -374,8 +374,9 @@ patchProps中，先对新的props做了遍历，在每次遍历中根据新key�
 插槽节点的传入时   
 在编译时会被解析成一个对象，对象的键就是插槽名，值是一个返回虚拟节点或虚拟节点list的方法，   
 其中default键就是默认插槽   
-在创建虚拟节点时，当节点的类型为组件且children是一个对象，则vnode的shapeFlag则会标记成插槽   
-在setupComponent方法流程里，对slot做初始化，会判断vnode的children是否符合插槽条件，符合则将其挨个存储到   
+在创建虚拟节点时，当vnode节点的类型为组件且children是一个对象，则vnode的shapeFlag则会标记成插槽   
+在setupComponent方法流程里，对slot做初始化，会判断vnode的shapeFlag是否被标记为插槽类型，
+遍历children，符合则将其挨个存储到   
 组件实例的instance.slots上，这里有个小细节就是对返回值做了一层包装，使得插槽对象返回值都是数组   
 而插槽节点在熏染时，则是通过编译成renderSlots方法实现，其内部根据插槽名，在instance.slots上获取都对应插槽的渲染方法   
 并使用fragment进行包装渲染   
@@ -421,7 +422,7 @@ patchChildren中会先获取新旧虚拟节点的子节点，并根据虚拟节�
 老的为数组，则变量老数组挨个删除元素     
    
 如果新的是 数组   
-老的是空  -> 插入新数组     
+老的是空  -> mountChildren插入新数组
 老的是文本 -> 删除文本  -> mountChildren插入新数组     
 老的为数组 -> diff 算法   
    
@@ -465,16 +466,16 @@ patchChildren中会先获取新旧虚拟节点的子节点，并根据虚拟节�
      
 3.3 剩余指针的情况，则是包含节点移动的情况，需要进一步处理       
 3.3.1     
-构建一个 newToIndexMap，他是一个Map对象，根据新序列每个节点的key，建立key与节点在序列中的index索引映射     
+构建一个 newIndexMap，他是一个Map对象，根据新序列每个节点的key，建立key与节点在序列中的index索引映射     
 实现：遍历新序列填充Map对象     
 3.3.2     
-构建一个数组 newIndexToOldIndexMap，其长度是新序列剩余中间序列长度，初始值每个都是 -1     
+构建一个数组 newIndexToOldIndexMap，其长度是新序列剩余中间序列长度，初始值每个都是 0     
 newIndexToOldIndexMap的是为了建立起新序列每个元素在旧序列中的映射关系，     
 其每个元素的索引本身对应新序列每个元素的索引，而元素值，则是新序列元素在旧序列中的索引。     
 他将后续辅助计算最大递增子序列。     
      
 实现：遍历旧序列，在遍历时     
-如果旧节点有 `key`，则根据 `key` 到 `newToIndexMap` 中找新节点索引 `oldInNewIndex`，     
+如果旧节点有 `key`，则根据 `key` 到 `newIndexMap` 中找新节点索引 `oldInNewIndex`，     
 如果没有 `key`，则只能遍历新序列找到对应节点的索引 `oldInNewIndex`，     
 这也是为什么设置key能够提高diff速度的原因，     
 如果旧节点没有在新的序列中找到对应的节点索引，则说明节点需要删除，调用 `hostRemove` 删除节点，     
@@ -492,13 +493,13 @@ newIndexToOldIndexMap的是为了建立起新序列每个元素在旧序列中�
      
 3.3.3     
 此时我们拿到了是否要移动节点以及新旧节点映射关系表 `newIndexToOldIndexMap`，     
-根据 `newIndexToOldIndexMap` 计算最大递增子序列seq，seq返回的值在vue中是     
-递增子序列的索引值，     
-根据最大递增子序列，开启一个for循环，并维护指针s指向seq尾部，i指向新序列（中间部分）尾部     
+根据 `newIndexToOldIndexMap` 计算最大递增子序列seq，seq返回的值在vue中是最大递增子序列位于     
+`newIndexToOldIndexMap` 的索引值序列，他表示对应索引位置的原始不需要移动     
+根据最大递增子序列，使用`patched`(新剩余节点数量)开启一个for循环遍历新节点序列，并维护指针s指向seq尾部，i指向新序列（中间部分）尾部     
 每一次循环，     
-先判断i指向的元素位于 `newIndexToOldIndexMap` 值是否为 -1，是则patch创建新元素，并 --i移动指针，进入下一轮循环，     
-否则 判断 指针i是否等于,即是否等于指针s指向的递增子序列`seq[s]`，等于，则s--，进入下一轮循环，     
-否则，根据 i + newStart（就是算是头部的索引），和下一个节点索引 i + newStart + 1，获取锚点，调用insert实现移动节点     
+先判断i指向的元素位于 `newIndexToOldIndexMap` 值是否为 0，是则patch创建新元素，并 --i移动指针，进入下一轮循环，
+否则 判断 指针i是否等于指针s指向的递增子序列`seq[s]`，等于，则s--，进入下一轮循环，--i移动指针，     
+否则，根据 i + newStart（就是头部的索引），和下一个节点索引 i + newStart + 1，获取锚点，调用insert实现移动节点，--i移动指针
 至此 双端快速diff算法结束     
 ————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————
 ### 最大递增子序列算法   
