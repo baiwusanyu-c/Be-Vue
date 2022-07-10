@@ -735,7 +735,30 @@ process内部对普通元素的主要逻辑实现
 我的解决方法：在transformExpression.ts加入检测来避免识别为静态提升，从而能够被正确编译   
 我的问题：虽然解决了问题，但是这与静态提升的设计违背，会导致这些静态变量无法被提升。   
 正确的解决方式：在transformElement.ts中，即element 转换节点检测这个问题，最终生成的静态提升变量会被 `normalizeStyle`处理成合法的格式，;   
-### Vue2 与 Vue3 是如何对数组实现数据劫持的 ？ TODO
+### Vue2 与 Vue3 是如何对数组实现数据劫持的 ？
+vue3中对数组的数据劫持还是通过proxy来实现，只不过数组存在大量的访问方法，设置方法，遍历方法，都需要对这些方法做单独出来
+````
+let a = reactive([1])
+effect(()=>{
+    console.log(a.length)
+})
+````
+上述代码中，如果我们设置a[0] = 2设置，和a[1] = 0 设置是不一样的，因此在setter中还需要根据设置的索引值和数组长度去区分操作类型
+时 ‘ADD’ 还是 ‘SET’，针对类型的不同在trigger中还需要做处理，比如‘ADD’类型，就需要在trigger中取出该数组length相关的所有副作用，
+遍历挨个触发。
+在比如对数组的遍历方法 `for...of`,`values`方法，他们的迭代器访问了length 与 索引，因此在数据访问劫持做依赖收集时，是收集的length属性与索引
+当数据的length，索引对应元素变化，需要触发这些遍历方法再次执行。
+而在vue2中
+有一个改写数组原生方法的列表 `methodsToPatch`
+然后以`Array.prototype`为原型创建一个对象 `arrayMethods`
+改写时，遍历methodsToPatch,在每趟遍历中，缓存原始方法 `original = arrayProto[method]`
+并调用definedProperty来对`arrayMethods`上数组相关方法的调用做劫持，具体的劫持方法中，先使用缓存的原始方法 `original`那个结果
+对那些可以新增数组元素的方法比如push，shift，会拿到新增的数据，并把这些数据传递给observe，做响应式处理，
+最后通过notify派发更新并返回结果。至此就完成了数组方法的改写对象 `arrayMethods`
+
+在应用时，判断浏览器是否支持隐式原型 `__proto__`,如果支持，则直接将当前数据数组的_proto_指向 `arrayMethods`,
+如果浏览器不支持`__proto__`，则直接遍历`arrayMethods`，将上面重写的方法直接定义到当前数据对象上
+
 ### vue3如何处理多个v-mode?
 在vue2中`v-model`实现需要开发者在子组件中通过`model`选项定义绑定值和触发事件名称
 ````
