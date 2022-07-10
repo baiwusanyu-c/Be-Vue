@@ -497,7 +497,7 @@ newIndexToOldIndexMap的是为了建立起新序列每个元素在旧序列中�
 `newIndexToOldIndexMap` 的索引值序列，他表示对应索引位置的原始不需要移动     
 根据最大递增子序列，使用`patched`(新剩余节点数量)开启一个for循环遍历新节点序列，并维护指针s指向seq尾部，i指向新序列（中间部分）尾部     
 每一次循环，     
-先判断i指向的元素位于 `newIndexToOldIndexMap` 值是否为 0，是则patch创建新元素，并 --i移动指针，进入下一轮循环，
+先判断i位于 `newIndexToOldIndexMap` 值是否为 0，是则patch创建新元素，并 --i移动指针，进入下一轮循环，
 否则 判断 指针i是否等于指针s指向的递增子序列`seq[s]`，等于，则s--，进入下一轮循环，--i移动指针，     
 否则，根据 i + newStart（就是头部的索引），和下一个节点索引 i + newStart + 1，获取锚点，调用insert实现移动节点，--i移动指针
 至此 双端快速diff算法结束     
@@ -736,3 +736,34 @@ process内部对普通元素的主要逻辑实现
 我的问题：虽然解决了问题，但是这与静态提升的设计违背，会导致这些静态变量无法被提升。   
 正确的解决方式：在transformElement.ts中，即element 转换节点检测这个问题，最终生成的静态提升变量会被 `normalizeStyle`处理成合法的格式，;   
 ### Vue2 与 Vue3 是如何对数组实现数据劫持的 ？ TODO
+### vue3如何处理多个v-mode?
+在vue2中`v-model`实现需要开发者在子组件中通过`model`选项定义绑定值和触发事件名称
+````
+model: {
+    prop: "number", // 默认为 value
+    event: "change", // 默认为 input
+},
+````
+相应的在父组件就等效于
+````
+<HelloWorld v-model="inputVal" />
+<!-- 等效于 -->
+<HelloWorld :number="inputVal" @change="data=$event" />
+````
+在组件数据修改时需要触发 `this.$emit("change", val);`
+
+在`vue3`中，我们实现`v-model`需要在子组件中定义emit事件`update:modelValue`,通过`props.modelValue`访问绑定值
+并且在数据更改时触发这个事件，实现双向绑定
+在模板编译阶段 `v-model`会被编译为props传递来创建 `vnode`
+````
+ modelValue: msg.value,
+"onUpdate:modelValue":$event => ((msg).value = $event)),
+````
+而如果我们实现多个v-model，则语法规则是`v-model:msg1 = "msg1" v-model:msg2 = "msg2"`
+会被编译成
+````
+ msg1: msg1.value,
+"onUpdate:msg1":$event => ((msg1).value = $event)),
+ msg2: msg2.value,
+"onUpdate:msg2":$event => ((msg2).value = $event)),
+````
