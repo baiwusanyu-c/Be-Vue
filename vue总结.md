@@ -560,13 +560,14 @@ n ：4 2 1 3
 1.newStart === oldStart，此时表示当前头部指针指向节点相同，不需要移动，进行patch，深度优先递归patch，并移动头部指针
 2.newEnd === oldEnd，此时表示当前尾部指针指向节点相同，不需要移动，进行patch，深度优先递归patch，并移动尾部指针
 3.newEnd === oldStart，此时表示oldStart指向旧头节点被移动到了newEnd指向的位置，
-即需要将oldStart节点insert到oldEnd（nextSibling）后面，进行patch，深度优先递归patch，并移动newEnd、oldStart指针
+即需要将oldStart节点insert到`oldEnd`（nextSibling）后面，进行patch，深度优先递归patch，并移动newEnd、oldStart指针
 4.newStart === oldEnd，此时表示oldEnd指向的尾节点被移动到了newStart指向的位置，
 o ：1 2 3 4 
 n ：2 4 1 3
-即需要将oldEnd节点insert到oldStart前面，进行patch，深度优先递归patch，并移动oldEnd、newStart指针。
-这四种情况之外，就是非理想情况的处理，此时处理逻辑是拿新头newStart到旧节点序列中找打相同的节点，并记录索引indexOnOld，
-当它大于0,则模拟情况1的逻辑，去区别时移动过后，要把indexOnOld的旧序列对应节点置为undefined，且只移动newStart，
+即需要将oldEnd节点insert到`oldStart`前面，进行patch，深度优先递归patch，并移动oldEnd、newStart指针。
+
+这四种情况之外，就是非理想情况的处理，此时处理逻辑是拿新头newStart到旧节点序列中找相同的节点，并记录索引indexOnOld，
+当它大于0,则模拟情况1的逻辑，去区别时移动过后，要把indexOnOld的旧序列对应节点置为undefined，且只移动newStart指针，
 这样其实就是构造了四种理想情况序列，继续遍历算法执行。
 o ：4 1 3 2
 n ：1 2 3
@@ -794,3 +795,5 @@ model: {
  msg2: msg2.value,
 "onUpdate:msg2":$event => ((msg2).value = $event)),
 ````
+
+### vue3中一些常用生命周期在那个阶段调用
