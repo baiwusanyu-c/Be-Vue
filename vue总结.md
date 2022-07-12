@@ -616,6 +616,19 @@ vue的编译模块如上所示，主要是由sfc输入文件内容字符串，�
 字符内容判断等操作，将dom字符串解析成一个个token，并根据token构造出AST
 ````
 <p>foo</p>
+初始状态
+< ----------- 标签开始状态
+p ----------- 标签名称状态 
+> ----------- 初始状态
+{type:'tagStart',name:'p'}
+foo ----------- 文本状态
+type:'text',content:'foo'}
+< ----------- 标签开始状态
+/ ----------- 结束标签状态
+p ----------- 结束标签名称状态
+> ----------- 初始状态
+{type:'tagEnd',name:'p'}
+
 => token:[
     {type:'tagStart',name:'p'},
     {type:'text',content:'foo'},
