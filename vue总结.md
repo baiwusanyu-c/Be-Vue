@@ -662,10 +662,10 @@ vue3的block优化，实际上就是在编译阶段，分析出那些包含有�
 的后代节点中，属于动态节点的对应vnode、block节点，在渲染器运行时，更新逻辑就只会从dynamicChildren中进行更新，
 这样就减少了diff对比的节点数量，从而达到优化。
 ### 如何收集后代block与动态节点
-此外优于createVNode是深度优先的，因次为了能够让根节点收集到后代的动态节点，  
+此外由于createVNode是深度优先的，因次为了能够让根节点收集到后代的动态节点，  
 需要用一个栈来存储后代的动态节点（dynamicChildrenStack(currentDynamicChildren = [])）,  
 而在渲染器中，判断是否有dynamicChildren，有就在更新时遍历新旧dynamicChildren进行更新，而单个节点，  
-优于dynamicChildren的vnode存在patchFlag，所以可以准确的靶向更新。
+由于dynamicChildren的vnode存在patchFlag，所以可以准确的靶向更新。
 值得注意的是，若子代存在block，根节点收集的是子代block，但是子block后有动态节点，根节点不会收集
 因为他们已经存在与子代block中了。
 ### 结构化指令带来的block不稳定
@@ -676,8 +676,8 @@ vue3的block优化，实际上就是在编译阶段，分析出那些包含有�
 因此渲染器对不稳定的fragment还是使用的常规diff。
 ## vue3的静态提升优化 、预字符串化
 在render函数内调用createElementBlock，createVNode时，只要更新逻辑触发，render函数运行，
-createElementBlock，createVNode会被再次调用，而如果一个节点，它所使用的变量是静态常量，非响应式的，那么它
-实际上不需要更新，所以可以把创建静态常量的vnode逻辑提升到render函数外面，把创建的vnode放在一个变量hoist上，
+createElementBlock，createVNode会被再次调用，而如果一个节点，它所使用的变量是静态常量，非响应式的，它在更新时也会被重复创建
+（createElementBlock，createVNode），而实际上不需要更新，所以可以把创建静态常量的vnode逻辑提升到render函数外面，把创建的vnode放在一个变量hoist上，
 render函数内部使用hoist，这样在更新时就可以避免重复调用方法创建vnode了。
 预字符串化，是静态提升的一种优化策略，当提升变量到底20个，这些变量对应的节点会直接被转化为字符串，
 通过innerHTML来创建，这里由于不涉及更新，用innerHTML来创建大量dom在性能上有优势，同时又减少了
@@ -703,14 +703,22 @@ keepalive使用的缓存策略时缓存最近以此缓存的，它内部维护�
 溢出逻辑，获取keys的第一个元素，根据这个元素key从cache中获取vnode，把这个vnode和current对比，类型不一样就要卸载，   
 然后还要key根据删除cache和keys   
 ### teleport   
-在编译技术后创建的teleport的vnode，在patch过程中会被识别出来，并用内置组件teleport的实例对象TeleportImpl上的process方法来完成   
-teleport组件的逻辑实现。   
-process内部对普通元素的主要逻辑实现   
-初始化时，n1不存在，则获取n2的props.to，根据to，获取到对应的dom，并遍历n2的children，挨个将其进行patch，最终将dom插入到目标容器下。     
-在更新时，如果n1与n2的props.to不同，则获取n2的props.to，根据to，获取到对应的dom，并遍历n2的children，挨个调用moveTeleport方法最终将dom移动到目标容器下。   
-如果n1与n2的props.disabled 不同，则获取n2的props.disabled，根据disabled，获取到对应的dom，并遍历n2的children，挨个调用moveTeleport方法最终将dom移动到目标容器下。   
+内置组件teleport会导出一个teleport对象，他会在编译结束后作为第一个参数节点类型传递给CreateBlock创建shapeFlag为teleport类型的虚拟节点
+teleport对象实际上就是TeleportImpl对象
+在编译后创建的teleport的vnode，在patch过程中会被识别出来，并用vnode上的type（就是teleport-》TeleportImpl）来调用process方法来完成teleport组件的逻辑实现。   
+process内部对普通元素的主要逻辑实现
+初始化时，n1不存在，则获取n2的props.to，根据to，获取到对应的dom（如果禁用dom就是container），
+使用mountChildren并遍历n2的children，挨个将其进行patch，最终将dom插入到目标容器下。
+
+在更新时，如果n1与n2的props.to不同，则获取n2的props.to，根据to，获取到对应的dom，
+调用moveTeleport方法直接将整个child插入到对应dom下
+
+如果n1与n2的props.disabled 不同，则获取n2的props.disabled，根据disabled
+获取到对应的dom（true-》false，dom是to的目标元素，false-》true，dom就是container），
+调用moveTeleport方法，并遍历n2的children然后调用渲染器导出的move方法（方法内最终用的hostInsert）
+，将最终将dom移动到目标容器下。   
+
 如果如果n1于n2的props.to一样，直接patchChildren 或 patchBlockChildren   
-   
 并且TeleportImpl还提供了对外的Api给框架操作，比如remove方法，在unmount时能够卸载对应的teleport   
    
 ### 提交的 pr   
@@ -735,7 +743,8 @@ process内部对普通元素的主要逻辑实现
 同时配合框架的diff算法去得到更新最小解，实现我们最终的效果，这其实是一种性能与开发投入、可维护性的一种权衡。  
 所以对于虚拟dom性能优于原生或原生优于虚拟dom其实是不准确的。例如我要创建1000个div，  
 通过innerHTML去实现，他需要在dom层面去解析字符串，那么性能消耗是dom层面计算1000个div的消耗 + 创建消耗  
-而js层面的计算消耗是小于dom层面的，那么虚拟dom实现的则是js层面计算1000个div的消耗 + 创建消耗，在这个例子中，虚拟dom的性能就高于innerHTML  
+而js层面的计算消耗是小于dom层面的，那么虚拟dom实现的则是js层面计算1000个div的消耗 + 创建消耗，在这个例子中，如果有div发生更新，
+虚拟dom能精准的实现目标元素的更新，而innerHTML需要重新计算这1000个div，这样虚拟dom的性能就高于innerHTML  
 那如果用纯js原生去实现，消耗则更小，但是实现复杂心智负担大，而虚拟dom 对于原生js、innerHTML，是心智负担最小，性能又不错的一种选择。
 ### bug 5675   
 问题描述：   
