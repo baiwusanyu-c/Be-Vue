@@ -685,19 +685,27 @@ render函数内部使用hoist，这样在更新时就可以避免重复调用方
 ## 内置组件实现原理   
 ### Keep-alive   
 vue3的keepalive组件使用了setup进行了重写，   
-在setup中同感getCurrentInstance获取到了keepalive组件实例，从上面获取到了由渲染器注入的move方法、createElement方法，节点卸载方法等，   
-其中会使用createElement方法创建存储元素storageContainer，在缓存隐藏逻辑时，缓存的vnode节点将被挂在元素下   
+keepalive组件的组件对象中
+setup中通过getCurrentInstance获取到了keepalive组件实例，
+从上面获取到了由渲染器注入的move方法、createElement方法，节点卸载方法等，  
+其中会使用createElement方法创建存储元素storageContainer，在缓存隐藏逻辑时，缓存的vnode节点将被挂在元素下  
+
 在组件实例上，添加一个active方法，这个方法将在patch时将被调用，用于处理keepalive的激活逻辑，   
 在这个 activate 方法中，主要是将传递进来的缓存节点vnode,根据容器参数container调用move方法将缓存节点移动到对应容器内渲染，   
 并且重新将node和组件实例上旧的vnode进行patch，以此来更新props，最后在把组件的isDeactivated状态设置为false，即激活状态。   
-在组件实例上，添加一个deactivate方法，这个方法将在patch时的unmount方法中被调用，用于处理keepalive的非激活逻辑，   
+
+在组件实例上，添加一个deactivate方法，这个方法将在patch时的unmount方法中被调用，用于处理keepalive的非激活逻辑，
 而在deactivate方法中主要是将传递进来的缓存节点vnode,根据storageContainer调用move方法将缓存节点移动到storageContainer元素内隐藏，   
 把组件的isDeactivated状态设置为true，即非激活状态。   
-可以看到keepalive组件内卸载时并不是真的卸载而是被隐藏到storageContainer中，当激活时也是将组件从storageContainer移动到对应容器下。   
-keepalive使用的缓存策略时缓存最近以此缓存的，它内部维护了一个keys，他是一个set，按照顺序存储缓存的vnode的key，   
-还维护了一个cache，它是一个map，key是vnode的type，值是vnode，   
-在keepalive组件中会先获取插槽，拿到插槽对应组件的vnode，然后获取key、组件的名称等，其主要时做先做了一个判断，根基name，   
-去看是不是不存在include里或存在exclude里，满足条件就直接返回组件的vnode，不满足就根据vnode的key去cache拿缓存cahceVnode，   
+
+可以看到keepalive组件内卸载时并不是真的卸载而是被隐藏到storageContainer中，当激活时也是将组件从storageContainer移动到对应容器下。  
+
+keepalive使用的缓存策略时缓存最一次此缓存的，它内部维护了一个keys，他是一个set，按照顺序存储缓存的vnode的key，   
+还维护了一个cache，它是一个map，key是vnode的type，值是vnode ，
+
+在keepalive组件中会先获取插槽，拿到插槽对应组件的vnode，然后获取key、组件的名称等，其主要时做先做了一个判断，根据组件的name，   
+去看是不是不存在include里或存在exclude里，满足条件就直接返回组件的vnode，
+不满足就根据vnode的key去cache拿缓存cahceVnode，   
 拿到了，就把cacheVnode的el和component赋值vnode上，并把vnode存在变量current上，并且先删除keys上对应key，再添加key（`实现更新最近访问效果`）;   
 如果拿不到，就给keys添加key，然后判断是否大于max，大于就处理溢出逻辑   
 溢出逻辑，获取keys的第一个元素，根据这个元素key从cache中获取vnode，把这个vnode和current对比，类型不一样就要卸载，   
