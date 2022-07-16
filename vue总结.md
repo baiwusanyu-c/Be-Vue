@@ -20,7 +20,7 @@ effect(consoleFoo)
 ```   
    
 在上述代码中，首先通过 `reactive` 对 `foo` 做了代理，而 `consoleFoo` 方法则访问了 `foo` 并打印，     
-然后在 `effect` 中传入的函数 `consoleFoo`，在这个过程中，`effect` 会运行一遍传入的函数 `consoleFoo`，     
+然后在 `effect` 中传入的函数 `consoleFoo`，在这个过程中，`effect` 会运行一遍传入的函数 `consoleFoo`，       
 此时 `consoleFoo` 会被当做当前激活依赖存放在全局变量 `activeEffect` 上，而 `consoleFoo` 运行时访问了 `foo`，此时会触发 `get`，从而将当前的     
 `activeEffect`（也就是 `consoleFoo`），当做 `foo` 的依赖进行收集。   
 ### reactive 的基本实现   
@@ -782,10 +782,10 @@ effect(()=>{
 而在vue2中
 有一个改写数组原生方法的列表 `methodsToPatch`
 然后以`Array.prototype`为原型创建一个对象 `arrayMethods`
-改写时，遍历methodsToPatch,在每趟遍历中，缓存原始方法 `original = arrayProto[method]`
-并调用definedProperty来对`arrayMethods`上数组相关方法的调用做劫持，具体的劫持方法中，先使用缓存的原始方法 `original`那个结果
-对那些可以新增数组元素的方法比如push，shift，会拿到新增的数据，并把这些数据传递给observe，做响应式处理，
-最后通过notify派发更新并返回结果。至此就完成了数组方法的改写对象 `arrayMethods`
+改写时，遍历 `methodsToPatch`,在每趟遍历中，缓存原始方法 `original = arrayProto[method]`
+并调用 `definedProperty` 来对`arrayMethods`上数组相关方法的调用做劫持，具体的劫持方法中，先使用缓存的原始方法 `original`那个结果
+对那些可以新增数组元素的方法比如 `push`，`shift`，会拿到新增的数据，并把这些数据传递给 `observe`，做响应式处理，
+最后通过`notify`派发更新并返回结果。至此就完成了数组方法的改写对象 `arrayMethods`
 
 在应用时，判断浏览器是否支持隐式原型 `__proto__`,如果支持，则直接将当前数据数组的_proto_指向 `arrayMethods`,
 如果浏览器不支持`__proto__`，则直接遍历`arrayMethods`，将上面重写的方法直接定义到当前数据对象上
