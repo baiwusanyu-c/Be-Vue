@@ -645,13 +645,13 @@ p ----------- 结束标签名称状态
 `generate` 的本质，其实就是根据`transform`处理过的`ast`进行解析，生成对应的`JavaScript`代码字符串   
    
 ### compiler 编译模块如何在 runtime 运行时模块中使用   
-`runtime` 运行时模块 导出了一个注册编译函数`registryRuntimeCompiler`,   
-在`vue`的入口文件 `index` 中调用 `registryRuntimeCompiler` 并传入一个方法 `compileToFunction`   
-通过注册编译函数 `registryRuntimeCompiler`,`compileToFunction` 将在 被存储在运行时全局变量    
-`compiler`上,`compiler`则会在 `finishComponentSetup` 中被调用,最后获得 `render` 方法挂载在组件实例   
+`runtime` 运行时模块(runtime-dom) 导出了一个注册编译函数`registerRuntimeCompiler`,   
+在`vue`的入口文件(vue文件夹) `index` 中调用 `registerRuntimeCompiler` 并传入一个方法 `compileToFunction`   
+通过注册编译函数 `registryRuntimeCompiler`,传入的`compileToFunction` 将被存储在运行时全局变量    
+`compile`上,`compile`则会在 `finishComponentSetup` 中被调用,最后获得 `render` 方法挂载在组件实例   
 `instance.render`上。   
-在`compileToFunction` 内部将传递进来的 `template` 传递给编译模块 的 `baseCompile` 方法最终会得到 `code`，   
-在使用 `new Function('vue',code)(runtimeDom) `得到 `render` 函数。   
+在`compileToFunction` 它在调用时，内部将传递进来的 `template` 传递给编译模块 的 `compile` 方法最终会得到 `code`，   
+在使用 `new Function('vue',code)(runtimeDom) `得到 `render` 函数。最终返回给运行时调用
 其中 `baseCompile` 函数由 编译模块 `index` 导出，其内部分别调用 `baseParse`、`transform`、`generate`.     
 ## vue3中 block的处理、patchFlag的优化  
 在实际场景中，模板的结构大多数情况下是稳定的，所以在编译阶段能够分析出模板的很多信息用于优化;  
