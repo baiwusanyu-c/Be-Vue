@@ -373,17 +373,17 @@ patchProps中，先对新的props做了遍历，在每次遍历中根据新key�
 ### 实现组件slot插槽   
 插槽节点的传入时   
 在编译时会被解析成一个对象，对象的键就是插槽名，值是一个返回虚拟节点或虚拟节点list的方法，   
-其中default键就是默认插槽   
+其中default键就是默认插槽 ，这个对象在创建虚拟节点时会作为children传入，  
 在创建虚拟节点时，当vnode节点的类型为组件且children是一个对象，则vnode的shapeFlag则会标记成插槽   
 在setupComponent方法流程里，对slot做初始化，会判断vnode的shapeFlag是否被标记为插槽类型，
-遍历children，符合则将其挨个存储到   
+遍历children（此时是个对象），符合则将其挨个存储到   
 组件实例的instance.slots上，这里有个小细节就是对返回值做了一层包装，使得插槽对象返回值都是数组   
 而插槽节点在熏染时，则是通过编译成renderSlots方法实现，其内部根据插槽名，在instance.slots上获取都对应插槽的渲染方法   
 并使用fragment进行包装渲染   
 ### 实现 Fragment 片段与Text文本类型节点   
 Text纯文本在编译时会被编译成使用createTextVNode来创建vnode，   
 此时patch时则走processText，processText则是拿到children（文本子节点），直接插入都容器container中   
-Fragment 片段 在编译时，如果是组件类型却没有单一根节点，则会将Fragment作为类型来创建vnode，   
+Fragment 片段 在编译时，如果是组件类型却没有单一根子节点，则会将Fragment作为类型来创建vnode，   
 此时patch时则走processFragment，processFragment内部则是调用mountChildren，遍历children 挨个patch   
 ### 实现getCurrentInstance   
 原理是在组件初始流程时，setStatefulComponent中在调用setup方法之前，将组件实例缓存在一个全局变量中，用户   
