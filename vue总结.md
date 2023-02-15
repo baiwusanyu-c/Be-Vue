@@ -188,6 +188,7 @@ __v_isRef = true // 是否是 ref 对象标识
 此外这里是 直接调用 `ReactiveEffect` 而不是 `effect Api`，所以 `fn` 不会先执行一次   ，  
 而且还会在 `computeRefImpl` 的构造函数和 `get` 方法上分别 `trigger` 和 `track` 一下计算属性对象，因为它也具有响应式，某些依赖方法会访问它。  
 `isDirty` 初始为 `true` ，这样在首次访问`.value`时就可以`run`，收集依赖  
+
 ### watch 监听属性的基本实现   
 `watch` 是用来监听响应式对象的。     
 `watch` 与 `watchEffect` 都是通过调用 `doWatch` 来实现的     
